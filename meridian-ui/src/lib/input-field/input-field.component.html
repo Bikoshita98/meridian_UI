@@ -1,0 +1,22 @@
+<div class="flex flex-col gap-2xs">
+  @if (label) {
+    <mr-label [for]="inputId" [required]="required" [disabled]="disabled">{{ label }}</mr-label>
+  }
+  <input
+    [id]="inputId"
+    [class]="inputClass()"
+    [type]="type"
+    [placeholder]="placeholder"
+    [value]="value()"
+    [disabled]="disabled"
+    [readOnly]="readonly"
+    [required]="required"
+    [attr.aria-invalid]="status === 'error' ? 'true' : null"
+    [attr.aria-describedby]="helperText ? helperId : null"
+    (input)="handleInput($event)"
+    (blur)="onTouched()"
+  />
+  @if (helperText) {
+    <span [id]="helperId" [class]="helperClass()">{{ helperText }}</span>
+  }
+</div>

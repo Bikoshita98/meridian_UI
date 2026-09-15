@@ -1,0 +1,6 @@
+<label [class]="hostClass()" [attr.for]="for">
+  <ng-content></ng-content>
+  @if (required) {
+    <span class="text-error-500" aria-hidden="true">*</span>
+  }
+</label>

@@ -1,13 +1,15 @@
 # Build Status
-Last updated: 2026-09-15T16:26:00Z, after: button component built (variant/color/size/shape/radius/status, icon auto-sizing via contentChildren), full toolchain validated (jest, ng-packagr build all green)
+Last updated: 2026-09-15T16:32:00Z, after: label + input-field components built (input-field implements ControlValueAccessor, added @angular/forms as a declared peer/dev dependency), full toolchain validated (jest, ng-packagr build all green)
 
 ## Component checklist
 - [x] icon — done (MrIcon wraps @ng-icons/core + @ng-icons/lucide; tests pass)
 - [x] button — done (MrButton: 6 enums — variant/color/size/shape/radius/status; auto-syncs a
       projected `<mr-icon>`'s size via `contentChildren` + `effect()`; loading state renders an
       inline spinner and force-disables the native `<button>`; tests pass)
-- [ ] input-field — not started (needs `label` first — see Next step)
-- [ ] select — not started
+- [x] input-field — done (MrInputField: size/status enums, implements `ControlValueAccessor` so it
+      works with `[formControl]`/`ngModel`, renders its own `<mr-label>` when `label` is set,
+      helper text colored per status with `aria-describedby`/`aria-invalid`; tests pass)
+- [ ] select — not started (build this next)
 - [ ] checkbox — not started
 - [ ] radio — not started
 - [ ] toggle — not started
@@ -22,19 +24,22 @@ Last updated: 2026-09-15T16:26:00Z, after: button component built (variant/color
 - [ ] table — not started
 - [ ] toast — not started
 - [ ] spinner — not started
-- [ ] label — not started (internal-only helper, not part of the public 18; see Decisions)
+- [x] label — done (internal-only helper, not part of the public 18; `<mr-label>` wraps a native
+      `<label>` with `for`/`size`/`required`(asterisk marker)/`disabled`(dims via opacity); see
+      Decisions)
 
 ## Next step
-Build the internal `label` component at `meridian-ui/src/lib/label/` (not part of the public 18 —
-it's the `<mr-label>` helper CONVENTIONS.md requires instead of a bare `<label>`), following the
-same file-set pattern as `icon`/`button`. It only needs to exist well enough to support
-`input-field`, `checkbox`, `radio`, `toggle` next (a text/for-id label with an optional
-required-marker and disabled-state styling is enough — no need to over-build it). Then build
-`input-field` at `meridian-ui/src/lib/input-field/`, using its own `label` input where present and
-falling back to `<mr-label>` per CONVENTIONS.md. Run `npx jest` and `npx ng-packagr -p
-ng-package.json` from `meridian-ui/` after each to confirm both stay green, and add each new
-export to `meridian-ui/src/index.ts` (tsconfig/jest path mappings for `label` and `input-field` are
-already reserved).
+Build the `select` component at `meridian-ui/src/lib/select/`, following the same file-set pattern
+as `icon`/`button`/`input-field` (enums.ts, variants.ts using `tv()`, component.ts with OnPush +
+`@Input()` setters backed by signals + `computed()` for the class string, component.html,
+public-api.ts, index.ts, component.spec.ts). It's built on Angular CDK Overlay (already a
+peerDependency) for the dropdown panel — `src/styles.scss` already imports
+`@angular/cdk/overlay-prebuilt.css` per BUILD_PROMPT.md, so no new CSS wiring is needed. Like
+`input-field`, it should implement `ControlValueAccessor` (`@angular/forms` is now a declared
+dependency, see Decisions) so it works with `[formControl]`/`ngModel`, and should render its own
+`<mr-label>` when a `label` input is set, matching the `input-field` pattern. Run `npx jest` and
+`npx ng-packagr -p ng-package.json` from `meridian-ui/` after to confirm both stay green, and add
+its export to `meridian-ui/src/index.ts` (its tsconfig/jest path mapping is already reserved).
 
 ## Testing gotcha to remember
 A plain field mutation on a TestBed-created component's own instance (e.g.
@@ -66,7 +71,13 @@ pattern.
 - Added one small internal `label` component (`<mr-label>`) beyond the public 18 — CONVENTIONS.md
   and the architecture pattern both require components to use it instead of a bare `<label>`, so
   it has to exist. It is not part of the public component-checklist count in the prompt's
-  deliverable but is required infrastructure for `input-field`, `checkbox`, `radio`, `toggle`.
+  deliverable but is required infrastructure for `input-field`, `checkbox`, `radio`, `toggle`. Done.
+- Added `@angular/forms` as a declared `peerDependency`/`devDependency` (it wasn't listed in the
+  original scaffold's dependency set). `input-field` implements `ControlValueAccessor` via
+  `NG_VALUE_ACCESSOR` — a form-field component that can't plug into `[formControl]`/`ngModel`
+  isn't usable in a real app, so this is core to what "build input-field" means, not scope creep.
+  It was already present in `node_modules` transitively; only the explicit package.json
+  declaration + a plain `npm install` were needed to pin it properly.
 - Per-component "own tsconfig path mapping" (prompt's exact wording) is implemented as `paths` in
   `meridian-ui/tsconfig.json` plus a matching `moduleNameMapper` in `jest.config.js`, resolving
   `@meridian/ui/<name>` to that component's `public-api.ts`. This gives tree-shakeable, per-
@@ -77,5 +88,5 @@ pattern.
   turn out to matter — that would need the secondary-entry-point approach instead.
 
 ## Known issues
-- None yet. `npm install`, `npx jest`, and `npx ng-packagr -p ng-package.json` (run from
-  `meridian-ui/`) are all green as of this update, with only the `icon` component built.
+- None. `npm install`, `npx jest` (35 tests across icon/button/label/input-field), and
+  `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`) are all green as of this update.
