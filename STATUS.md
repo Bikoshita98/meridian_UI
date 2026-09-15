@@ -1,5 +1,5 @@
 # Build Status
-Last updated: 2026-09-15T16:48:00Z, after: radio component built (standalone ControlValueAccessor per radio + UniqueSelectionDispatcher for correct sibling-unchecking), full toolchain validated (jest, ng-packagr build all green)
+Last updated: 2026-09-15T16:51:00Z, after: toggle component built (pill track + sliding thumb, ControlValueAccessor) — checkbox/radio/toggle form-control trio now complete, full toolchain validated (jest, ng-packagr build all green)
 
 ## Component checklist
 - [x] icon — done (MrIcon wraps @ng-icons/core + @ng-icons/lucide; tests pass)
@@ -25,8 +25,12 @@ Last updated: 2026-09-15T16:48:00Z, after: radio component built (standalone Con
       the same `name` is selected, since native radio `change` events never fire on the
       deselected item — proven by a regression test with two radios sharing one `FormControl`;
       tests pass)
-- [ ] toggle — not started (build this next)
-- [ ] tabs — not started
+- [x] toggle — done (MrToggle: size/status enums, a pill-shaped track with a circular thumb that
+      slides via `translate-x-*` compound variants keyed by size (slide distance = track width -
+      thumb size, precomputed per size rather than done with inline arithmetic in the template);
+      implements `ControlValueAccessor`; no `indeterminate` — doesn't apply to a switch; tests
+      pass)
+- [ ] tabs — not started (build this next)
 - [ ] tooltip — not started
 - [ ] dropdown — not started
 - [ ] modal — not started
@@ -42,17 +46,31 @@ Last updated: 2026-09-15T16:48:00Z, after: radio component built (standalone Con
       Decisions)
 
 ## Next step
-Build `toggle` at `meridian-ui/src/lib/toggle/` — the last of the checkbox/radio/toggle trio, and
-the simplest of the three. Same overall shape as `checkbox` (visually-hidden native
-`<input type="checkbox">` over a decorative element, `ControlValueAccessor`, size/status enums,
-coerced `disabled`/`required`, own `label` input), but the decorative element is a pill-shaped
-track (`rounded-pill`, roughly 2:1 width:height) with a circular thumb that's absolutely
-positioned and slides from `left-*` to `right-*` (or via a `translate-x-*` transform) based on
-`checked`. No `indeterminate` concept for toggle — skip it, it doesn't apply to a switch. After
-`toggle`, the checkbox/radio/toggle form-control trio is complete; move on to `tabs` next (no CDK
-Overlay needed — it's a `@ContentChildren`/content-projection composition pattern instead, closer
-in shape to how `button` auto-syncs a projected `<mr-icon>` than to any of the CVA form
-components). Run `npx jest` **and** `npx ng-packagr -p ng-package.json` after each — see the
+Build `tabs` at `meridian-ui/src/lib/tabs/`. This is architecturally different from everything
+built so far: it's the first *compound* component, needing a container + item pair rather than one
+standalone `ControlValueAccessor`. Recommended shape (one folder, two `@Component` classes in it —
+still "one component, one folder" at the BUILD_PROMPT.md level, tabs is the public unit):
+- `MrTabs` (selector `mr-tabs`): holds the active tab state (an index or a generic `value: T`
+  input/two-way-bindable output — a plain `@Input() selected` + `@Output() selectedChange` is
+  simplest and avoids pulling `ControlValueAccessor` into a component that isn't really a form
+  control). Renders a `role="tablist"` row of buttons built from its projected `MrTab` children
+  (query them via `contentChildren(MrTab)`, same signal-query pattern `button` already uses for its
+  projected `<mr-icon>`), plus a bottom/side indicator that animates between the active tab's
+  position — `<mr-icon>`'s `contentChildren` + `effect()` pattern is the direct precedent to copy
+  here for reading each child's `label`.
+- `MrTab` (selector `mr-tab`): one per tab. Takes a `label` and optional `disabled`; its own
+  `<ng-content>` is the panel body, rendered by `MrTabs` only when that tab is the active one (each
+  `MrTab` can expose an `active` signal that `MrTabs` sets, so `MrTab`'s own template does
+  `@if (active())` around its `<ng-content>` — keeps the "is this the active panel" logic inside
+  the tab itself rather than `MrTabs` doing structural `@if`/`@switch` over opaque projected
+  content it can't easily conditionally render).
+Keep it to ONE visual style for v1 (an underline/indicator under the active tab is the standard,
+uncontroversial choice) rather than adding a `variant` enum for pills/segmented/etc — nothing in
+BUILD_PROMPT.md asks for multiple tab visual styles, and `TabsSize`/`TabsStatus`-style enums can
+still exist for size, matching the rest of the library's scale. After `tabs`, `tooltip` is next
+(first component needing `cdkConnectedOverlay` purely for positioning + `@Input() trigger:
+'hover' | 'focus'`-style show/hide, no CVA at all — closer to `select`'s overlay usage than to any
+form component). Run `npx jest` **and** `npx ng-packagr -p ng-package.json` after each — see the
 ng-packagr gotcha below, jest alone is not sufficient. Add each export to
 `meridian-ui/src/index.ts` (tsconfig/jest path mappings already reserved).
 
@@ -130,6 +148,6 @@ ng-packagr gotcha below, jest alone is not sufficient. Add each export to
   turn out to matter — that would need the secondary-entry-point approach instead.
 
 ## Known issues
-- None. `npm install`, `npx jest` (67 tests across
-  icon/button/label/input-field/select/checkbox/radio), and `npx ng-packagr -p ng-package.json`
-  (run from `meridian-ui/`) are all green as of this update.
+- None. `npm install`, `npx jest` (77 tests across
+  icon/button/label/input-field/select/checkbox/radio/toggle), and
+  `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`) are all green as of this update.

@@ -1,0 +1,22 @@
+<label [for]="inputId" class="inline-flex cursor-pointer select-none items-center gap-xs">
+  <span class="relative inline-flex">
+    <input
+      [id]="inputId"
+      type="checkbox"
+      role="switch"
+      class="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+      [checked]="checked()"
+      [disabled]="disabled"
+      [required]="required"
+      [attr.aria-checked]="checked()"
+      (change)="handleChange($event)"
+      (blur)="onTouched()"
+    />
+    <span [class]="trackClass()" aria-hidden="true">
+      <span [class]="thumbClass()"></span>
+    </span>
+  </span>
+  @if (label) {
+    <span class="label-2 text-neutral-700">{{ label }}</span>
+  }
+</label>
