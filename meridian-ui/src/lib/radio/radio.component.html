@@ -1,0 +1,23 @@
+<label [for]="inputId" class="inline-flex cursor-pointer select-none items-center gap-xs">
+  <span class="relative inline-flex">
+    <input
+      [id]="inputId"
+      type="radio"
+      [name]="name"
+      class="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+      [checked]="checked()"
+      [disabled]="disabled"
+      [required]="required"
+      (change)="handleChange()"
+      (blur)="onTouched()"
+    />
+    <span [class]="boxClass()" aria-hidden="true">
+      @if (checked()) {
+        <span [class]="dotClass()"></span>
+      }
+    </span>
+  </span>
+  @if (label) {
+    <span class="label-2 text-neutral-700">{{ label }}</span>
+  }
+</label>

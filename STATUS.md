@@ -1,5 +1,5 @@
 # Build Status
-Last updated: 2026-09-15T16:43:00Z, after: checkbox component built (visually-hidden native input + styled overlay box, indeterminate support, implements ControlValueAccessor), full toolchain validated (jest, ng-packagr build all green)
+Last updated: 2026-09-15T16:48:00Z, after: radio component built (standalone ControlValueAccessor per radio + UniqueSelectionDispatcher for correct sibling-unchecking), full toolchain validated (jest, ng-packagr build all green)
 
 ## Component checklist
 - [x] icon — done (MrIcon wraps @ng-icons/core + @ng-icons/lucide; tests pass)
@@ -18,8 +18,14 @@ Last updated: 2026-09-15T16:43:00Z, after: checkbox component built (visually-hi
       keyboard support; `indeterminate` is a signal-backed coerced boolean input, shown as a dash
       icon and a filled box independent of `checked`; implements `ControlValueAccessor`; tests
       pass)
-- [ ] radio — not started (build this next)
-- [ ] toggle — not started
+- [x] radio — done (MrRadio: went with option (b) from the prior Next step — each `mr-radio` is
+      its own standalone `ControlValueAccessor` with a required `value` + `name`; consumer binds
+      the *same* `[formControl]`/`[(ngModel)]` to every radio in a group. Uses CDK's
+      `UniqueSelectionDispatcher` to force-uncheck a radio's own signal state when a sibling with
+      the same `name` is selected, since native radio `change` events never fire on the
+      deselected item — proven by a regression test with two radios sharing one `FormControl`;
+      tests pass)
+- [ ] toggle — not started (build this next)
 - [ ] tabs — not started
 - [ ] tooltip — not started
 - [ ] dropdown — not started
@@ -36,26 +42,19 @@ Last updated: 2026-09-15T16:43:00Z, after: checkbox component built (visually-hi
       Decisions)
 
 ## Next step
-Build `radio` at `meridian-ui/src/lib/radio/`, following `checkbox`'s shape closely (visually-
-hidden native `<input type="radio">` over a decorative circular box, rounded-pill instead of
-rounded-sm, filled dot instead of a checkmark icon — a plain `<span>` dot is simpler and looks
-better than an icon here, no need to force `<mr-icon>` in just because checkbox used one). Unlike
-checkbox, a single `MrRadio` only makes sense as *one button in a group* — decide and note in
-Decisions whether that's: (a) one `mr-radio` per option, grouped only by a shared `name` string
-input (simplest, matches native radio grouping, but the group as a whole doesn't implement
-`ControlValueAccessor` — each `mr-radio` would independently need `[value]`/`[checked]`/`(change)`
-wired by the consumer), or (b) a `MrRadio` that implements `ControlValueAccessor` itself and takes
-its own `value`, requiring the consumer to bind the *same* `[formControl]`/`[(ngModel)]` to every
-`mr-radio` in the group (each instance's `writeValue` compares the incoming value to its own
-`value` input to decide if it's the checked one) — this is closer to how Angular's own
-`ReactiveFormsModule` radio button pattern already works natively (`[value]` + shared
-`formControlName`), needs no extra group container component, and is more consistent with how
-`checkbox`/`select`/`input-field` were each built as a single standalone CVA component rather than
-a parent+children pair — prefer (b) unless it proves awkward once written. Then `toggle` — a
-checkbox visually restyled as a switch (pill track + sliding thumb), same CVA shape as `checkbox`.
-Run `npx jest` **and** `npx ng-packagr -p ng-package.json` after each — see the ng-packagr gotcha
-below, jest alone is not sufficient. Add each export to `meridian-ui/src/index.ts` (tsconfig/jest
-path mappings already reserved).
+Build `toggle` at `meridian-ui/src/lib/toggle/` — the last of the checkbox/radio/toggle trio, and
+the simplest of the three. Same overall shape as `checkbox` (visually-hidden native
+`<input type="checkbox">` over a decorative element, `ControlValueAccessor`, size/status enums,
+coerced `disabled`/`required`, own `label` input), but the decorative element is a pill-shaped
+track (`rounded-pill`, roughly 2:1 width:height) with a circular thumb that's absolutely
+positioned and slides from `left-*` to `right-*` (or via a `translate-x-*` transform) based on
+`checked`. No `indeterminate` concept for toggle — skip it, it doesn't apply to a switch. After
+`toggle`, the checkbox/radio/toggle form-control trio is complete; move on to `tabs` next (no CDK
+Overlay needed — it's a `@ContentChildren`/content-projection composition pattern instead, closer
+in shape to how `button` auto-syncs a projected `<mr-icon>` than to any of the CVA form
+components). Run `npx jest` **and** `npx ng-packagr -p ng-package.json` after each — see the
+ng-packagr gotcha below, jest alone is not sufficient. Add each export to
+`meridian-ui/src/index.ts` (tsconfig/jest path mappings already reserved).
 
 ## Testing gotchas to remember
 - A plain field mutation on a TestBed-created component's own instance (e.g.
@@ -98,6 +97,13 @@ path mappings already reserved).
   and the architecture pattern both require components to use it instead of a bare `<label>`, so
   it has to exist. It is not part of the public component-checklist count in the prompt's
   deliverable but is required infrastructure for `input-field`, `checkbox`, `radio`, `toggle`. Done.
+- `radio` uses `@angular/cdk/collections`' `UniqueSelectionDispatcher` (already available — CDK is
+  a peerDependency) to keep each `mr-radio`'s own visual `checked` signal correct when a sibling
+  in the same `name` group is selected. This is necessary, not optional: a native radio `change`
+  event only fires on the newly-selected item, never on the one that silently became unchecked, so
+  without this a deselected radio's decorative box/dot would stay visually stuck "checked" even
+  though the underlying `<input>` correctly updates. This is the same mechanism Angular Material's
+  own `mat-radio-button` uses internally for the same reason — not a novel workaround.
 - `computed()` only tracks **signal** reads made during its factory function — reading a plain
   (non-signal-backed) class field inside a `computed()` does not make it reactive to that field
   changing later; the computed just returns a stale cached value until some *other* tracked signal
@@ -124,5 +130,6 @@ path mappings already reserved).
   turn out to matter — that would need the secondary-entry-point approach instead.
 
 ## Known issues
-- None. `npm install`, `npx jest` (55 tests across icon/button/label/input-field/select/checkbox),
-  and `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`) are all green as of this update.
+- None. `npm install`, `npx jest` (67 tests across
+  icon/button/label/input-field/select/checkbox/radio), and `npx ng-packagr -p ng-package.json`
+  (run from `meridian-ui/`) are all green as of this update.
