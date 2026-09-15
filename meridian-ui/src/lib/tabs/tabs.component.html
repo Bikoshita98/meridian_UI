@@ -1,0 +1,19 @@
+<div>
+  <div role="tablist" [class]="listClass()">
+    @for (tab of tabs(); track tab.tabId; let i = $index) {
+      <button
+        type="button"
+        role="tab"
+        [id]="tab.tabId"
+        [attr.aria-controls]="tab.panelId"
+        [attr.aria-selected]="i === selected"
+        [disabled]="tab.disabled"
+        [class]="tabButtonClass(i)"
+        (click)="select(i)"
+      >
+        {{ tab.label }}
+      </button>
+    }
+  </div>
+  <ng-content></ng-content>
+</div>

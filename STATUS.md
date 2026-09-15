@@ -1,5 +1,5 @@
 # Build Status
-Last updated: 2026-09-15T16:51:00Z, after: toggle component built (pill track + sliding thumb, ControlValueAccessor) — checkbox/radio/toggle form-control trio now complete, full toolchain validated (jest, ng-packagr build all green)
+Last updated: 2026-09-15T16:56:00Z, after: tabs component built (first compound component — MrTabs container + MrTab item via contentChildren, no ControlValueAccessor), full toolchain validated (jest, ng-packagr build all green)
 
 ## Component checklist
 - [x] icon — done (MrIcon wraps @ng-icons/core + @ng-icons/lucide; tests pass)
@@ -30,8 +30,18 @@ Last updated: 2026-09-15T16:51:00Z, after: toggle component built (pill track + 
       thumb size, precomputed per size rather than done with inline arithmetic in the template);
       implements `ControlValueAccessor`; no `indeterminate` — doesn't apply to a switch; tests
       pass)
-- [ ] tabs — not started (build this next)
-- [ ] tooltip — not started
+- [x] tabs — done (first compound component: `MrTabs` container + `MrTab` item, two `@Component`
+      classes in one `tabs/` folder. `MrTabs` reads `label`/`disabled`/`tabId`/`panelId` off each
+      projected `MrTab` via `contentChildren` (same pattern `button` uses for its projected icon)
+      and pushes `active` down to each; `MrTab` conditionally renders its own `<ng-content>` panel
+      via `@if (active)`. Plain `[selected]`/`(selectedChange)` — deliberately not a
+      `ControlValueAccessor`, it isn't a form control. Simplified away from the originally-planned
+      animated sliding indicator to a static per-button underline — the animated version needed
+      DOM measurement (`ViewChildren` + `getBoundingClientRect`) and resize handling that nothing
+      in BUILD_PROMPT.md asked for; the static underline gives the same visual result with far
+      less surface area. `TabsSize` only (no status/variant enum, single visual style for v1);
+      tests pass)
+- [ ] tooltip — not started (build this next)
 - [ ] dropdown — not started
 - [ ] modal — not started
 - [ ] card — not started
@@ -46,33 +56,29 @@ Last updated: 2026-09-15T16:51:00Z, after: toggle component built (pill track + 
       Decisions)
 
 ## Next step
-Build `tabs` at `meridian-ui/src/lib/tabs/`. This is architecturally different from everything
-built so far: it's the first *compound* component, needing a container + item pair rather than one
-standalone `ControlValueAccessor`. Recommended shape (one folder, two `@Component` classes in it —
-still "one component, one folder" at the BUILD_PROMPT.md level, tabs is the public unit):
-- `MrTabs` (selector `mr-tabs`): holds the active tab state (an index or a generic `value: T`
-  input/two-way-bindable output — a plain `@Input() selected` + `@Output() selectedChange` is
-  simplest and avoids pulling `ControlValueAccessor` into a component that isn't really a form
-  control). Renders a `role="tablist"` row of buttons built from its projected `MrTab` children
-  (query them via `contentChildren(MrTab)`, same signal-query pattern `button` already uses for its
-  projected `<mr-icon>`), plus a bottom/side indicator that animates between the active tab's
-  position — `<mr-icon>`'s `contentChildren` + `effect()` pattern is the direct precedent to copy
-  here for reading each child's `label`.
-- `MrTab` (selector `mr-tab`): one per tab. Takes a `label` and optional `disabled`; its own
-  `<ng-content>` is the panel body, rendered by `MrTabs` only when that tab is the active one (each
-  `MrTab` can expose an `active` signal that `MrTabs` sets, so `MrTab`'s own template does
-  `@if (active())` around its `<ng-content>` — keeps the "is this the active panel" logic inside
-  the tab itself rather than `MrTabs` doing structural `@if`/`@switch` over opaque projected
-  content it can't easily conditionally render).
-Keep it to ONE visual style for v1 (an underline/indicator under the active tab is the standard,
-uncontroversial choice) rather than adding a `variant` enum for pills/segmented/etc — nothing in
-BUILD_PROMPT.md asks for multiple tab visual styles, and `TabsSize`/`TabsStatus`-style enums can
-still exist for size, matching the rest of the library's scale. After `tabs`, `tooltip` is next
-(first component needing `cdkConnectedOverlay` purely for positioning + `@Input() trigger:
-'hover' | 'focus'`-style show/hide, no CVA at all — closer to `select`'s overlay usage than to any
-form component). Run `npx jest` **and** `npx ng-packagr -p ng-package.json` after each — see the
-ng-packagr gotcha below, jest alone is not sufficient. Add each export to
-`meridian-ui/src/index.ts` (tsconfig/jest path mappings already reserved).
+Build `tooltip` at `meridian-ui/src/lib/tooltip/` — first component needing `cdkConnectedOverlay`
+purely for positioning/show-hide, no `ControlValueAccessor` at all (closer to `select`'s overlay
+usage than to any form component, but simpler: no listbox, no keyboard selection, just show/hide).
+Recommended shape: an `mr-tooltip` *attribute-style* host directive-ish component is overkill here
+— simplest is a structural wrapper: `<mr-tooltip text="...">`-wraps its projected trigger content,
+using `cdkOverlayOrigin` on a wrapping `<span>` around `<ng-content>`, opening the panel on
+`(mouseenter)`/`(focusin)` and closing on `(mouseleave)`/`(focusout)`/Escape (see `select` for the
+`cdkConnectedOverlay` + `OverlayContainer`-based testing pattern — same gotcha applies: the panel
+renders into `document.body`, not `fixture.nativeElement`). Inputs: `text` (or richer projected
+content via a second `<ng-template>` — start with a plain `text: string` input, simplest thing that
+works, richer content projection can come later if actually needed), `position`
+(`'top'|'bottom'|'left'|'right'`, mapped to `ConnectedPosition[]` for `cdkConnectedOverlayPositions`
+with a sensible fallback chain), and a small open/close delay (`showDelay`/`hideDelay` in ms,
+common tooltip UX to avoid flicker on fast mouse-throughs) — implement the delay with
+`setTimeout`/`clearTimeout` in the component, not RxJS, to keep it simple. `TooltipSize` probably
+isn't needed (tooltips are typically one small text size) — skip that enum unless it turns out
+awkward not to have one. After `tooltip`, `dropdown` is next — likely shares most of its shape with
+`select`'s trigger+`cdkConnectedOverlay`+panel structure, but with arbitrary projected menu-item
+content instead of a fixed `options: SelectOption<T>[]` array (more like `tabs`' content-projection
+approach than `select`'s data-driven one). Run `npx jest` **and**
+`npx ng-packagr -p ng-package.json` after each — see the ng-packagr gotchas below, jest alone is
+not sufficient. Add each export to `meridian-ui/src/index.ts` (tsconfig/jest path mappings already
+reserved).
 
 ## Testing gotchas to remember
 - A plain field mutation on a TestBed-created component's own instance (e.g.
@@ -93,6 +99,13 @@ ng-packagr gotcha below, jest alone is not sufficient. Add each export to
   `document.body`, not inside `fixture.nativeElement` — query it via `TestBed.inject
   (OverlayContainer).getContainerElement()`, and call `overlayContainer.ngOnDestroy()` in
   `afterEach` or panel DOM leaks across tests in the same file. See `select.component.spec.ts`.
+- In a compound component (container + item, e.g. `tabs`), any property the *container*'s template
+  reads off a queried *item* instance (`tab.tabId`, `tab.label`, etc. in `MrTabs`' template) must be
+  `public` on the item class, not `protected` — `protected` only permits access from the declaring
+  class's own template/methods (and subclasses), and `ng-packagr`'s `strictTemplates` compile
+  enforces this like any other TypeScript cross-class access. `active` (set by the container) needs
+  the same treatment: a plain public getter/setter with no `@Input()`, since it's parent-set
+  internal state, not a consumer-facing binding.
 
 ## Decisions / deviations from BUILD_PROMPT.md
 - No monorepo tooling exists in this repo (empty directory to start), so per the prompt's own
@@ -148,6 +161,6 @@ ng-packagr gotcha below, jest alone is not sufficient. Add each export to
   turn out to matter — that would need the secondary-entry-point approach instead.
 
 ## Known issues
-- None. `npm install`, `npx jest` (77 tests across
-  icon/button/label/input-field/select/checkbox/radio/toggle), and
+- None. `npm install`, `npx jest` (84 tests across
+  icon/button/label/input-field/select/checkbox/radio/toggle/tabs), and
   `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`) are all green as of this update.

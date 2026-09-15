@@ -10,4 +10,5 @@ export * from './lib/input-field/public-api';
 export * from './lib/label/public-api';
 export * from './lib/radio/public-api';
 export * from './lib/select/public-api';
+export * from './lib/tabs/public-api';
 export * from './lib/toggle/public-api';
