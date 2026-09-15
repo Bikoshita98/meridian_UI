@@ -1,10 +1,12 @@
 # Build Status
-Last updated: 2026-09-15T03:05:00Z, after: scaffolding + icon component, full toolchain validated (npm install, jest, ng-packagr build all green)
+Last updated: 2026-09-15T16:26:00Z, after: button component built (variant/color/size/shape/radius/status, icon auto-sizing via contentChildren), full toolchain validated (jest, ng-packagr build all green)
 
 ## Component checklist
 - [x] icon — done (MrIcon wraps @ng-icons/core + @ng-icons/lucide; tests pass)
-- [ ] button — not started (build this next, it's the reference pattern for enums/variants/spec)
-- [ ] input-field — not started
+- [x] button — done (MrButton: 6 enums — variant/color/size/shape/radius/status; auto-syncs a
+      projected `<mr-icon>`'s size via `contentChildren` + `effect()`; loading state renders an
+      inline spinner and force-disables the native `<button>`; tests pass)
+- [ ] input-field — not started (needs `label` first — see Next step)
 - [ ] select — not started
 - [ ] checkbox — not started
 - [ ] radio — not started
@@ -23,13 +25,26 @@ Last updated: 2026-09-15T03:05:00Z, after: scaffolding + icon component, full to
 - [ ] label — not started (internal-only helper, not part of the public 18; see Decisions)
 
 ## Next step
-Build the `button` component at `meridian-ui/src/lib/button/` following the exact file set and
-pattern proven by `icon` (enums.ts, variants.ts using `tv()`, component.ts with OnPush +
-`@Input()` decorators + signals for derived state, component.html, public-api.ts, index.ts,
-component.spec.ts using TestBed), then run `npx jest src/lib/button` and
-`npx ng-packagr -p ng-package.json` from `meridian-ui/` to confirm both stay green before moving
-to the next component. Add its export to `meridian-ui/src/index.ts` and its path mapping is
-already reserved in `tsconfig.json`.
+Build the internal `label` component at `meridian-ui/src/lib/label/` (not part of the public 18 —
+it's the `<mr-label>` helper CONVENTIONS.md requires instead of a bare `<label>`), following the
+same file-set pattern as `icon`/`button`. It only needs to exist well enough to support
+`input-field`, `checkbox`, `radio`, `toggle` next (a text/for-id label with an optional
+required-marker and disabled-state styling is enough — no need to over-build it). Then build
+`input-field` at `meridian-ui/src/lib/input-field/`, using its own `label` input where present and
+falling back to `<mr-label>` per CONVENTIONS.md. Run `npx jest` and `npx ng-packagr -p
+ng-package.json` from `meridian-ui/` after each to confirm both stay green, and add each new
+export to `meridian-ui/src/index.ts` (tsconfig/jest path mappings for `label` and `input-field` are
+already reserved).
+
+## Testing gotcha to remember
+A plain field mutation on a TestBed-created component's own instance (e.g.
+`fixture.componentInstance.someField = x`) does **not** reliably re-trigger this Angular version's
+change-detection scheduler on a subsequent `fixture.detectChanges()` — only
+`fixture.componentRef.setInput('someField', x')` (which requires the field to be a real `@Input()`)
+reliably marks the view dirty. Any spec that needs to change an input on an already-created test
+host after the first `detectChanges()` must declare that field as `@Input()` and use `setInput()`,
+not direct property assignment — see `button.component.spec.ts`'s `ButtonWithIconHost` for the
+pattern.
 
 ## Decisions / deviations from BUILD_PROMPT.md
 - No monorepo tooling exists in this repo (empty directory to start), so per the prompt's own

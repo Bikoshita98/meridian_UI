@@ -1,0 +1,11 @@
+<button [class]="hostClass()" [type]="type" [disabled]="isDisabled()" [attr.aria-busy]="isLoading() ? 'true' : null">
+  @if (isLoading()) {
+    <span
+      class="animate-spin rounded-pill border-md border-current border-t-transparent"
+      [style.width]="spinnerPx()"
+      [style.height]="spinnerPx()"
+      aria-hidden="true"
+    ></span>
+  }
+  <ng-content></ng-content>
+</button>
