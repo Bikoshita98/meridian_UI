@@ -1,0 +1,28 @@
+// Global entry point for consuming apps: @import '@meridian/ui/styles.scss';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+// CDK Overlay: required by modal, dropdown, select and tooltip, all of which are built on
+// Angular CDK Overlay rather than hand-rolled positioning.
+@import '@angular/cdk/overlay-prebuilt.css';
+
+@layer base {
+  * {
+    @apply transition-colors duration-150 ease-in-out;
+  }
+
+  body {
+    @apply font-sans text-base text-neutral-600 bg-white;
+  }
+
+  a {
+    @apply text-primary-500;
+
+    &:hover {
+      @apply text-primary-600;
+    }
+  }
+}

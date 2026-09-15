@@ -1,0 +1,51 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "./dist/out-tsc",
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "declaration": false,
+    "experimentalDecorators": true,
+    "moduleResolution": "bundler",
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "ES2022",
+    "useDefineForClassFields": false,
+    "lib": ["ES2022", "dom"],
+    "paths": {
+      "@meridian/ui/button": ["src/lib/button/public-api.ts"],
+      "@meridian/ui/icon": ["src/lib/icon/public-api.ts"],
+      "@meridian/ui/input-field": ["src/lib/input-field/public-api.ts"],
+      "@meridian/ui/select": ["src/lib/select/public-api.ts"],
+      "@meridian/ui/checkbox": ["src/lib/checkbox/public-api.ts"],
+      "@meridian/ui/radio": ["src/lib/radio/public-api.ts"],
+      "@meridian/ui/toggle": ["src/lib/toggle/public-api.ts"],
+      "@meridian/ui/tabs": ["src/lib/tabs/public-api.ts"],
+      "@meridian/ui/tooltip": ["src/lib/tooltip/public-api.ts"],
+      "@meridian/ui/dropdown": ["src/lib/dropdown/public-api.ts"],
+      "@meridian/ui/modal": ["src/lib/modal/public-api.ts"],
+      "@meridian/ui/card": ["src/lib/card/public-api.ts"],
+      "@meridian/ui/badge": ["src/lib/badge/public-api.ts"],
+      "@meridian/ui/avatar": ["src/lib/avatar/public-api.ts"],
+      "@meridian/ui/pagination": ["src/lib/pagination/public-api.ts"],
+      "@meridian/ui/table": ["src/lib/table/public-api.ts"],
+      "@meridian/ui/toast": ["src/lib/toast/public-api.ts"],
+      "@meridian/ui/spinner": ["src/lib/spinner/public-api.ts"],
+      "@meridian/ui/label": ["src/lib/label/public-api.ts"]
+    }
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
+  }
+}

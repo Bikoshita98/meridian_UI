@@ -1,0 +1,13 @@
+{
+  "$schema": "../node_modules/ng-packagr/ng-package.schema.json",
+  "dest": "../dist/meridian-ui",
+  "lib": {
+    "entryFile": "src/index.ts"
+  },
+  "allowedNonPeerDependencies": [
+    "tailwind-variants",
+    "tailwind-merge",
+    "@ng-icons/core",
+    "@ng-icons/lucide"
+  ]
+}
