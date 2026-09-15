@@ -1,5 +1,5 @@
 # Build Status
-Last updated: 2026-09-15T16:59:00Z, after: tooltip component built (cdkConnectedOverlay show/hide on hover+focus with delay, no CVA), full toolchain validated (jest, ng-packagr build all green)
+Last updated: 2026-09-15T17:07:00Z, after: dropdown component built (compound MrDropdown + MrDropdownItem, CDK FocusKeyManager for arrow-key nav), full toolchain validated (jest, ng-packagr build all green)
 
 ## Component checklist
 - [x] icon — done (MrIcon wraps @ng-icons/core + @ng-icons/lucide; tests pass)
@@ -49,8 +49,19 @@ Last updated: 2026-09-15T16:59:00Z, after: tooltip component built (cdkConnected
       `position` enum (`top`/`bottom`/`left`/`right`) maps to a `ConnectedPosition[]` with a
       same-axis fallback. No `TooltipSize` — didn't turn out to need one. Tests pass, including a
       pending-show-cancelled-by-early-mouseleave case using `jest.useFakeTimers()`)
-- [ ] dropdown — not started (build this next)
-- [ ] modal — not started
+- [x] dropdown — done (went with option 2 from the prior Next step — compound `MrDropdown`
+      (trigger + `cdkConnectedOverlay` host) + `MrDropdownItem` (styled `@Component`, an internal
+      native `<button role="menuitem">`). No `contentChildren`/click-subscription bookkeeping for
+      selection — the panel wrapper just listens for any `(click)` that bubbles up from an item's
+      internal button (`event.target.closest('button')`) and closes; a disabled item's button
+      never dispatches click natively, so disabled-item exclusion is free. Arrow-key navigation +
+      Home/End use CDK's `FocusKeyManager` (`@angular/cdk/a11y`, constructed directly from the
+      `contentChildren` signal — no `QueryList` conversion needed) which also skips disabled items
+      automatically; first item auto-focuses on open via `afterNextRender` (the overlay's projected
+      item DOM doesn't exist until the next render, same as `*ngIf`). `DropdownPosition`
+      (`bottom-start`/`bottom-end`/`top-start`/`top-end`) maps to `ConnectedPosition[]` with a
+      vertical-flip fallback, same pattern as `tooltip`. Tests pass)
+- [ ] modal — not started (build this next)
 - [ ] card — not started
 - [ ] badge — not started
 - [ ] avatar — not started
@@ -63,34 +74,38 @@ Last updated: 2026-09-15T16:59:00Z, after: tooltip component built (cdkConnected
       Decisions)
 
 ## Next step
-Build `dropdown` at `meridian-ui/src/lib/dropdown/` — a click-to-open menu, sharing `select`'s
-trigger + `cdkConnectedOverlay` + panel shape but, unlike `select`, the panel body is arbitrary
-*projected* menu-item content rather than a data-driven `options: SelectOption<T>[]` array (closer
-to how `tooltip`/`tabs` use content projection). Needs a concrete API decision before writing code
-— two realistic shapes, pick one and note the choice in Decisions:
-1. **Single component, two projection slots**: `<mr-dropdown><button mr-dropdown-trigger>Menu
-   </button><a mr-dropdown-item href="...">Profile</a>...</mr-dropdown>`, using Angular's
-   multi-slot `<ng-content select="...">` (one default/unslotted region for the trigger, one
-   `select="[mrDropdownItem]"`-matched region — or an attribute-selector marker directive — for
-   menu items). Simpler public API (one tag), but needs either an attribute-selector marker
-   directive for items (a `MrDropdownItem` *directive*, not component, purely for styling +
-   keyboard-nav wiring — CONVENTIONS.md's component-file-set pattern doesn't quite cover
-   directives, improvise a minimal one) or accepts plain unstyled `<a>`/`<button>` children.
-2. **Compound component like `tabs`**: `MrDropdown` (trigger + overlay host, `contentChildren
-   (MrDropdownItem)` to read/manage each item, same pattern as `MrTabs`) + `MrDropdownItem`
-   (an actual styled `@Component`, `mr-dropdown-item`, handling its own hover/focus/disabled
-   styling and emitting a `select` output `MrDropdown` listens for to close the panel) — more
-   consistent with the `tabs` precedent already in this codebase (prefer this unless it proves
-   awkward, same reasoning `radio` used to prefer standalone CVA consistency over inventing a new
-   shape).
-Either way: click trigger toggles the panel (not hover, unlike `tooltip`); Escape and an outside
-click close it (`cdkConnectedOverlay`'s `(backdropClick)`/`(detach)`, same as `select`); arrow-key
-navigation between items and Enter/Space to activate the focused item is the accessible baseline
-(`role="menu"` on the panel, `role="menuitem"` on each item) — don't skip this, a dropdown menu
-without keyboard support is a real accessibility gap, not a nice-to-have. No CVA — a dropdown menu
-(of actions/links) isn't a form control, only `select` is. After `dropdown`, `modal` is next (also
-`cdkConnectedOverlay`-or-`cdkOverlay`-based, but centered + backdrop + focus-trap — CDK's
-`FocusTrap`/`cdk/a11y` will matter there). Run `npx jest` **and**
+Build `modal` at `meridian-ui/src/lib/modal/`. Architecturally different from every other overlay
+component so far: `select`/`dropdown`/`tooltip` all use the *declarative* `cdkConnectedOverlay`
+directive, which is hard-wired to *connected* (anchored-to-a-trigger-element) positioning — a modal
+has no trigger to anchor to, it's centered on the viewport, so it needs CDK Overlay's lower-level,
+*imperative* API instead: inject `Overlay` from `@angular/cdk/overlay` directly, create an
+`OverlayRef` via `overlay.create({ positionStrategy: overlay.position().global()
+.centerHorizontally().centerVertically(), hasBackdrop: true, backdropClass: ... })`, and attach the
+modal's own content to it via a `TemplatePortal` (`@ViewChild(TemplateRef)` on the modal's own
+`<ng-template>` wrapping its `<ng-content>`, instantiated with the component's own
+`ViewContainerRef`). Keep the *public* API declarative and consistent with the rest of the library
+rather than introducing a service-based open()/close() pattern this codebase doesn't use anywhere
+else: `<mr-modal [open]="isOpen" (openChange)="isOpen = $event">...</mr-modal>`, where the
+component's own `ngOnChanges`/an `effect()` watching an `open` signal creates/attaches the
+`OverlayRef` when it flips true and disposes it when it flips false (dispose in `ngOnDestroy` too,
+in case the host is destroyed while still open). Two real accessibility requirements, not optional:
+1. **Focus trap** — Tab must not escape to background content while the modal is open. Use CDK's
+   `cdk/a11y` `CdkTrapFocus` directive (`cdkTrapFocus` + `cdkTrapFocusAutoCapture` on the modal
+   panel content) rather than hand-rolling tab-key interception.
+2. **Focus restoration** — capture `document.activeElement` right before opening (this is the
+   trigger button in the calling app), and restore focus to it when the modal closes. CDK's
+   `FocusMonitor`/`cdk/a11y` has helpers for this, or it's simple enough to do by hand with a saved
+   element reference — either is fine, just don't skip it.
+Closing: Escape key (while trapped-focus is active, still needs an explicit `(keydown.escape)`
+listener — `cdkTrapFocus` only traps Tab, it doesn't add an Escape handler), backdrop click (an
+`@Input() dismissible = true` to allow disabling backdrop-click-to-close for "must choose an
+option" modals is a reasonable, minimal addition — don't go further than that, e.g. no need for a
+whole confirmation-before-close system). `ModalSize` enum (`sm`/`md`/`lg`/`xl`, controlling panel
+`max-w-*`) makes sense here since modal width genuinely varies by content; skip a `status` enum,
+nothing color-coded about a modal's own chrome. No CVA. After `modal`, the remaining components
+(`card`, `badge`, `avatar`, `pagination`, `table`, `toast`, `spinner`) are all simpler, non-overlay
+presentational components — `card`/`badge`/`avatar` in particular should go quickly, matching
+`icon`'s minimal pattern rather than any of the CVA/overlay components. Run `npx jest` **and**
 `npx ng-packagr -p ng-package.json` after each — see the ng-packagr gotchas below, jest alone is
 not sufficient. Add each export to `meridian-ui/src/index.ts` (tsconfig/jest path mappings already
 reserved).
@@ -121,6 +136,13 @@ reserved).
   enforces this like any other TypeScript cross-class access. `active` (set by the container) needs
   the same treatment: a plain public getter/setter with no `@Input()`, since it's parent-set
   internal state, not a consumer-facing binding.
+- CDK's `ListKeyManager`/`FocusKeyManager` (`onKeydown`) reads the legacy numeric `event.keyCode`
+  (e.g. 40 for down-arrow), not `event.key`. jsdom's `KeyboardEvent` constructor does **not**
+  derive `keyCode` from `key` automatically — a synthetic `new KeyboardEvent('keydown', { key:
+  'ArrowDown' })` in a test has `keyCode === 0` and the manager silently ignores it. Always pass
+  `keyCode` explicitly in a test that dispatches a key event through a CDK key manager (Angular's
+  own `(keydown.escape)`-style template bindings are unaffected — those parse `.key`, not
+  `.keyCode`). See `dropdown.component.spec.ts`'s ArrowDown test.
 
 ## Decisions / deviations from BUILD_PROMPT.md
 - No monorepo tooling exists in this repo (empty directory to start), so per the prompt's own
@@ -176,6 +198,6 @@ reserved).
   turn out to matter — that would need the secondary-entry-point approach instead.
 
 ## Known issues
-- None. `npm install`, `npx jest` (94 tests across
-  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip), and
+- None. `npm install`, `npx jest` (103 tests across
+  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip/dropdown), and
   `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`) are all green as of this update.

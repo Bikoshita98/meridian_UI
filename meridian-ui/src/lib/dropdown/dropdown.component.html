@@ -1,0 +1,24 @@
+<span #origin="cdkOverlayOrigin" cdkOverlayOrigin class="inline-flex" (click)="toggle()">
+  <ng-content></ng-content>
+</span>
+
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="origin"
+  [cdkConnectedOverlayOpen]="isOpen()"
+  [cdkConnectedOverlayPositions]="positions()"
+  [cdkConnectedOverlayHasBackdrop]="true"
+  cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+  (backdropClick)="close()"
+  (detach)="close()"
+>
+  <div
+    role="menu"
+    [class]="panelClass()"
+    (keydown)="handleMenuKeydown($event)"
+    (keydown.escape)="close()"
+    (click)="handlePanelClick($event)"
+  >
+    <ng-content select="mr-dropdown-item"></ng-content>
+  </div>
+</ng-template>
