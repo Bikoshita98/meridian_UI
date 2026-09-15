@@ -1,5 +1,5 @@
 # Build Status
-Last updated: 2026-09-15T16:36:00Z, after: select component built (CDK Overlay dropdown, implements ControlValueAccessor), full toolchain validated (jest, ng-packagr build all green)
+Last updated: 2026-09-15T16:43:00Z, after: checkbox component built (visually-hidden native input + styled overlay box, indeterminate support, implements ControlValueAccessor), full toolchain validated (jest, ng-packagr build all green)
 
 ## Component checklist
 - [x] icon — done (MrIcon wraps @ng-icons/core + @ng-icons/lucide; tests pass)
@@ -13,8 +13,12 @@ Last updated: 2026-09-15T16:36:00Z, after: select component built (CDK Overlay d
       listbox panel (not a native `<select>`), implements `ControlValueAccessor`, `options:
       SelectOption<T>[]` input with per-option `disabled`, renders its own `<mr-label>` when
       `label` is set; tests pass)
-- [ ] checkbox — not started (build this next)
-- [ ] radio — not started
+- [x] checkbox — done (MrCheckbox: size/status enums matching `input-field`'s scale; a real
+      `<input type="checkbox">` sits invisible on top of a decorative styled box for full a11y +
+      keyboard support; `indeterminate` is a signal-backed coerced boolean input, shown as a dash
+      icon and a filled box independent of `checked`; implements `ControlValueAccessor`; tests
+      pass)
+- [ ] radio — not started (build this next)
 - [ ] toggle — not started
 - [ ] tabs — not started
 - [ ] tooltip — not started
@@ -32,21 +36,26 @@ Last updated: 2026-09-15T16:36:00Z, after: select component built (CDK Overlay d
       Decisions)
 
 ## Next step
-Build `checkbox` at `meridian-ui/src/lib/checkbox/`, following the same file-set pattern as the
-other components. Simpler than `select` — no CDK Overlay needed, just a visually-hidden native
-`<input type="checkbox">` (for real keyboard/a11y semantics) plus a styled box driven by
-`tv()`/enums (size/status, matching `input-field`'s scale), a checkmark `<mr-icon name="check">`
-shown only when checked, and a `indeterminate` boolean input (set via `[indeterminate]` on the
-native input, since HTML has no indeterminate *attribute*, only a DOM property — bind it with
-`[indeterminate]`, not `[attr.indeterminate]`). Implement `ControlValueAccessor` like
-`input-field`/`select` (`writeValue` takes a boolean). Use its own `label` input where present,
-falling back to `<mr-label>` per CONVENTIONS.md, same as the other two form components. Then
-`radio` and `toggle` next — both can likely reuse most of `checkbox`'s shape (radio = same idea
-with `name`-grouped native `<input type="radio">`s instead of independent checkboxes; toggle = a
-checkbox visually restyled as a switch, same CVA). Run `npx jest` **and**
-`npx ng-packagr -p ng-package.json` after each — see the ng-packagr gotcha below, jest alone is not
-sufficient. Add each export to `meridian-ui/src/index.ts` (tsconfig/jest path mappings already
-reserved).
+Build `radio` at `meridian-ui/src/lib/radio/`, following `checkbox`'s shape closely (visually-
+hidden native `<input type="radio">` over a decorative circular box, rounded-pill instead of
+rounded-sm, filled dot instead of a checkmark icon — a plain `<span>` dot is simpler and looks
+better than an icon here, no need to force `<mr-icon>` in just because checkbox used one). Unlike
+checkbox, a single `MrRadio` only makes sense as *one button in a group* — decide and note in
+Decisions whether that's: (a) one `mr-radio` per option, grouped only by a shared `name` string
+input (simplest, matches native radio grouping, but the group as a whole doesn't implement
+`ControlValueAccessor` — each `mr-radio` would independently need `[value]`/`[checked]`/`(change)`
+wired by the consumer), or (b) a `MrRadio` that implements `ControlValueAccessor` itself and takes
+its own `value`, requiring the consumer to bind the *same* `[formControl]`/`[(ngModel)]` to every
+`mr-radio` in the group (each instance's `writeValue` compares the incoming value to its own
+`value` input to decide if it's the checked one) — this is closer to how Angular's own
+`ReactiveFormsModule` radio button pattern already works natively (`[value]` + shared
+`formControlName`), needs no extra group container component, and is more consistent with how
+`checkbox`/`select`/`input-field` were each built as a single standalone CVA component rather than
+a parent+children pair — prefer (b) unless it proves awkward once written. Then `toggle` — a
+checkbox visually restyled as a switch (pill track + sliding thumb), same CVA shape as `checkbox`.
+Run `npx jest` **and** `npx ng-packagr -p ng-package.json` after each — see the ng-packagr gotcha
+below, jest alone is not sufficient. Add each export to `meridian-ui/src/index.ts` (tsconfig/jest
+path mappings already reserved).
 
 ## Testing gotchas to remember
 - A plain field mutation on a TestBed-created component's own instance (e.g.
@@ -89,6 +98,16 @@ reserved).
   and the architecture pattern both require components to use it instead of a bare `<label>`, so
   it has to exist. It is not part of the public component-checklist count in the prompt's
   deliverable but is required infrastructure for `input-field`, `checkbox`, `radio`, `toggle`. Done.
+- `computed()` only tracks **signal** reads made during its factory function — reading a plain
+  (non-signal-backed) class field inside a `computed()` does not make it reactive to that field
+  changing later; the computed just returns a stale cached value until some *other* tracked signal
+  it depends on also changes. Caught this before it shipped on `checkbox`: `indeterminate` was
+  briefly a plain `@Input() indeterminate = false` field read inside `boxClass = computed(...)`,
+  which would have left the box's fill color stuck stale after `indeterminate` changed on its own.
+  Fixed by making it a proper signal-backed input like `size`/`status`/`disabled`. Rule going
+  forward: any `@Input()` whose value is read inside a `computed()` must be signal-backed
+  (`private readonly _x = signal(...)` + a setter that calls `.set()`), never a plain field —
+  plain fields are only safe to read directly in the template.
 - Added `@angular/forms` as a declared `peerDependency`/`devDependency` (it wasn't listed in the
   original scaffold's dependency set). `input-field` implements `ControlValueAccessor` via
   `NG_VALUE_ACCESSOR` — a form-field component that can't plug into `[formControl]`/`ngModel`
@@ -105,5 +124,5 @@ reserved).
   turn out to matter — that would need the secondary-entry-point approach instead.
 
 ## Known issues
-- None. `npm install`, `npx jest` (44 tests across icon/button/label/input-field/select), and
-  `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`) are all green as of this update.
+- None. `npm install`, `npx jest` (55 tests across icon/button/label/input-field/select/checkbox),
+  and `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`) are all green as of this update.

@@ -1,0 +1,26 @@
+<label [for]="inputId" class="inline-flex cursor-pointer select-none items-center gap-xs">
+  <span class="relative inline-flex">
+    <input
+      [id]="inputId"
+      type="checkbox"
+      class="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+      [checked]="checked()"
+      [indeterminate]="indeterminate"
+      [disabled]="disabled"
+      [required]="required"
+      [attr.aria-checked]="indeterminate ? 'mixed' : checked()"
+      (change)="handleChange($event)"
+      (blur)="onTouched()"
+    />
+    <span [class]="boxClass()" aria-hidden="true">
+      @if (indeterminate) {
+        <mr-icon name="minus" [size]="iconSize()" />
+      } @else if (checked()) {
+        <mr-icon name="check" [size]="iconSize()" />
+      }
+    </span>
+  </span>
+  @if (label) {
+    <span class="label-2 text-neutral-700">{{ label }}</span>
+  }
+</label>

@@ -4,6 +4,7 @@
  * for consumers who genuinely want the whole library at once.
  */
 export * from './lib/button/public-api';
+export * from './lib/checkbox/public-api';
 export * from './lib/icon/public-api';
 export * from './lib/input-field/public-api';
 export * from './lib/label/public-api';
