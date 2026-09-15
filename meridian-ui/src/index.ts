@@ -7,3 +7,4 @@ export * from './lib/button/public-api';
 export * from './lib/icon/public-api';
 export * from './lib/input-field/public-api';
 export * from './lib/label/public-api';
+export * from './lib/select/public-api';

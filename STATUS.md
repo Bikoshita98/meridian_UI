@@ -1,5 +1,5 @@
 # Build Status
-Last updated: 2026-09-15T16:32:00Z, after: label + input-field components built (input-field implements ControlValueAccessor, added @angular/forms as a declared peer/dev dependency), full toolchain validated (jest, ng-packagr build all green)
+Last updated: 2026-09-15T16:36:00Z, after: select component built (CDK Overlay dropdown, implements ControlValueAccessor), full toolchain validated (jest, ng-packagr build all green)
 
 ## Component checklist
 - [x] icon — done (MrIcon wraps @ng-icons/core + @ng-icons/lucide; tests pass)
@@ -9,8 +9,11 @@ Last updated: 2026-09-15T16:32:00Z, after: label + input-field components built 
 - [x] input-field — done (MrInputField: size/status enums, implements `ControlValueAccessor` so it
       works with `[formControl]`/`ngModel`, renders its own `<mr-label>` when `label` is set,
       helper text colored per status with `aria-describedby`/`aria-invalid`; tests pass)
-- [ ] select — not started (build this next)
-- [ ] checkbox — not started
+- [x] select — done (MrSelect: size/status enums, custom button trigger + `cdkConnectedOverlay`
+      listbox panel (not a native `<select>`), implements `ControlValueAccessor`, `options:
+      SelectOption<T>[]` input with per-option `disabled`, renders its own `<mr-label>` when
+      `label` is set; tests pass)
+- [ ] checkbox — not started (build this next)
 - [ ] radio — not started
 - [ ] toggle — not started
 - [ ] tabs — not started
@@ -29,27 +32,41 @@ Last updated: 2026-09-15T16:32:00Z, after: label + input-field components built 
       Decisions)
 
 ## Next step
-Build the `select` component at `meridian-ui/src/lib/select/`, following the same file-set pattern
-as `icon`/`button`/`input-field` (enums.ts, variants.ts using `tv()`, component.ts with OnPush +
-`@Input()` setters backed by signals + `computed()` for the class string, component.html,
-public-api.ts, index.ts, component.spec.ts). It's built on Angular CDK Overlay (already a
-peerDependency) for the dropdown panel — `src/styles.scss` already imports
-`@angular/cdk/overlay-prebuilt.css` per BUILD_PROMPT.md, so no new CSS wiring is needed. Like
-`input-field`, it should implement `ControlValueAccessor` (`@angular/forms` is now a declared
-dependency, see Decisions) so it works with `[formControl]`/`ngModel`, and should render its own
-`<mr-label>` when a `label` input is set, matching the `input-field` pattern. Run `npx jest` and
-`npx ng-packagr -p ng-package.json` from `meridian-ui/` after to confirm both stay green, and add
-its export to `meridian-ui/src/index.ts` (its tsconfig/jest path mapping is already reserved).
+Build `checkbox` at `meridian-ui/src/lib/checkbox/`, following the same file-set pattern as the
+other components. Simpler than `select` — no CDK Overlay needed, just a visually-hidden native
+`<input type="checkbox">` (for real keyboard/a11y semantics) plus a styled box driven by
+`tv()`/enums (size/status, matching `input-field`'s scale), a checkmark `<mr-icon name="check">`
+shown only when checked, and a `indeterminate` boolean input (set via `[indeterminate]` on the
+native input, since HTML has no indeterminate *attribute*, only a DOM property — bind it with
+`[indeterminate]`, not `[attr.indeterminate]`). Implement `ControlValueAccessor` like
+`input-field`/`select` (`writeValue` takes a boolean). Use its own `label` input where present,
+falling back to `<mr-label>` per CONVENTIONS.md, same as the other two form components. Then
+`radio` and `toggle` next — both can likely reuse most of `checkbox`'s shape (radio = same idea
+with `name`-grouped native `<input type="radio">`s instead of independent checkboxes; toggle = a
+checkbox visually restyled as a switch, same CVA). Run `npx jest` **and**
+`npx ng-packagr -p ng-package.json` after each — see the ng-packagr gotcha below, jest alone is not
+sufficient. Add each export to `meridian-ui/src/index.ts` (tsconfig/jest path mappings already
+reserved).
 
-## Testing gotcha to remember
-A plain field mutation on a TestBed-created component's own instance (e.g.
-`fixture.componentInstance.someField = x`) does **not** reliably re-trigger this Angular version's
-change-detection scheduler on a subsequent `fixture.detectChanges()` — only
-`fixture.componentRef.setInput('someField', x')` (which requires the field to be a real `@Input()`)
-reliably marks the view dirty. Any spec that needs to change an input on an already-created test
-host after the first `detectChanges()` must declare that field as `@Input()` and use `setInput()`,
-not direct property assignment — see `button.component.spec.ts`'s `ButtonWithIconHost` for the
-pattern.
+## Testing gotchas to remember
+- A plain field mutation on a TestBed-created component's own instance (e.g.
+  `fixture.componentInstance.someField = x`) does **not** reliably re-trigger this Angular
+  version's change-detection scheduler on a subsequent `fixture.detectChanges()` — only
+  `fixture.componentRef.setInput('someField', x)` (which requires the field to be a real
+  `@Input()`) reliably marks the view dirty. Any spec that needs to change an input on an
+  already-created test host after the first `detectChanges()` must declare that field as
+  `@Input()` and use `setInput()`, not direct property assignment — see
+  `button.component.spec.ts`'s `ButtonWithIconHost` for the pattern.
+- `npx jest` passing is **not** sufficient proof a component is done — jest-preset-angular's
+  template type-checking is looser than `ng-packagr`'s actual AOT `strictTemplates` compile. Hit
+  this on `select`: a `cdkConnectedOverlayWidth` signal typed `number | undefined` passed jest
+  fine but failed `ng-packagr` with a strict-template TS2322. Always run **both** `npx jest` and
+  `npx ng-packagr -p ng-package.json` before considering a component finished, not just the one
+  that's faster to iterate on.
+- A CDK Overlay panel (`cdkConnectedOverlay`) attaches to a `.cdk-overlay-container` on
+  `document.body`, not inside `fixture.nativeElement` — query it via `TestBed.inject
+  (OverlayContainer).getContainerElement()`, and call `overlayContainer.ngOnDestroy()` in
+  `afterEach` or panel DOM leaks across tests in the same file. See `select.component.spec.ts`.
 
 ## Decisions / deviations from BUILD_PROMPT.md
 - No monorepo tooling exists in this repo (empty directory to start), so per the prompt's own
@@ -88,5 +105,5 @@ pattern.
   turn out to matter — that would need the secondary-entry-point approach instead.
 
 ## Known issues
-- None. `npm install`, `npx jest` (35 tests across icon/button/label/input-field), and
+- None. `npm install`, `npx jest` (44 tests across icon/button/label/input-field/select), and
   `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`) are all green as of this update.
