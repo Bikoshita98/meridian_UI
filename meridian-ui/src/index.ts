@@ -12,3 +12,4 @@ export * from './lib/radio/public-api';
 export * from './lib/select/public-api';
 export * from './lib/tabs/public-api';
 export * from './lib/toggle/public-api';
+export * from './lib/tooltip/public-api';

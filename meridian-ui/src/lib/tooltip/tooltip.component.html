@@ -1,0 +1,23 @@
+<span
+  #origin="cdkOverlayOrigin"
+  cdkOverlayOrigin
+  class="inline-flex"
+  [attr.aria-describedby]="isOpen() ? tooltipId : null"
+  (mouseenter)="scheduleShow()"
+  (mouseleave)="scheduleHide()"
+  (focusin)="show()"
+  (focusout)="hide()"
+  (keydown.escape)="hide()"
+>
+  <ng-content></ng-content>
+</span>
+
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="origin"
+  [cdkConnectedOverlayOpen]="isOpen()"
+  [cdkConnectedOverlayPositions]="positions()"
+  [cdkConnectedOverlayHasBackdrop]="false"
+>
+  <div [id]="tooltipId" role="tooltip" [class]="panelClass()">{{ text }}</div>
+</ng-template>

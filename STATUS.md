@@ -1,5 +1,5 @@
 # Build Status
-Last updated: 2026-09-15T16:56:00Z, after: tabs component built (first compound component — MrTabs container + MrTab item via contentChildren, no ControlValueAccessor), full toolchain validated (jest, ng-packagr build all green)
+Last updated: 2026-09-15T16:59:00Z, after: tooltip component built (cdkConnectedOverlay show/hide on hover+focus with delay, no CVA), full toolchain validated (jest, ng-packagr build all green)
 
 ## Component checklist
 - [x] icon — done (MrIcon wraps @ng-icons/core + @ng-icons/lucide; tests pass)
@@ -41,8 +41,15 @@ Last updated: 2026-09-15T16:56:00Z, after: tabs component built (first compound 
       in BUILD_PROMPT.md asked for; the static underline gives the same visual result with far
       less surface area. `TabsSize` only (no status/variant enum, single visual style for v1);
       tests pass)
-- [ ] tooltip — not started (build this next)
-- [ ] dropdown — not started
+- [x] tooltip — done (MrTooltip: a wrapping `<mr-tooltip text="...">` around projected trigger
+      content, `cdkOverlayOrigin` + `cdkConnectedOverlay` for positioning only — no listbox, no
+      CVA. Opens on `mouseenter`/`focusin` (mouse waits `showDelay`ms, default 150, to avoid
+      flicker; focus is immediate for keyboard users), closes on `mouseleave` (after `hideDelay`,
+      default 0)/`focusout`/Escape, implemented with plain `setTimeout`/`clearTimeout`, not RxJS.
+      `position` enum (`top`/`bottom`/`left`/`right`) maps to a `ConnectedPosition[]` with a
+      same-axis fallback. No `TooltipSize` — didn't turn out to need one. Tests pass, including a
+      pending-show-cancelled-by-early-mouseleave case using `jest.useFakeTimers()`)
+- [ ] dropdown — not started (build this next)
 - [ ] modal — not started
 - [ ] card — not started
 - [ ] badge — not started
@@ -56,26 +63,34 @@ Last updated: 2026-09-15T16:56:00Z, after: tabs component built (first compound 
       Decisions)
 
 ## Next step
-Build `tooltip` at `meridian-ui/src/lib/tooltip/` — first component needing `cdkConnectedOverlay`
-purely for positioning/show-hide, no `ControlValueAccessor` at all (closer to `select`'s overlay
-usage than to any form component, but simpler: no listbox, no keyboard selection, just show/hide).
-Recommended shape: an `mr-tooltip` *attribute-style* host directive-ish component is overkill here
-— simplest is a structural wrapper: `<mr-tooltip text="...">`-wraps its projected trigger content,
-using `cdkOverlayOrigin` on a wrapping `<span>` around `<ng-content>`, opening the panel on
-`(mouseenter)`/`(focusin)` and closing on `(mouseleave)`/`(focusout)`/Escape (see `select` for the
-`cdkConnectedOverlay` + `OverlayContainer`-based testing pattern — same gotcha applies: the panel
-renders into `document.body`, not `fixture.nativeElement`). Inputs: `text` (or richer projected
-content via a second `<ng-template>` — start with a plain `text: string` input, simplest thing that
-works, richer content projection can come later if actually needed), `position`
-(`'top'|'bottom'|'left'|'right'`, mapped to `ConnectedPosition[]` for `cdkConnectedOverlayPositions`
-with a sensible fallback chain), and a small open/close delay (`showDelay`/`hideDelay` in ms,
-common tooltip UX to avoid flicker on fast mouse-throughs) — implement the delay with
-`setTimeout`/`clearTimeout` in the component, not RxJS, to keep it simple. `TooltipSize` probably
-isn't needed (tooltips are typically one small text size) — skip that enum unless it turns out
-awkward not to have one. After `tooltip`, `dropdown` is next — likely shares most of its shape with
-`select`'s trigger+`cdkConnectedOverlay`+panel structure, but with arbitrary projected menu-item
-content instead of a fixed `options: SelectOption<T>[]` array (more like `tabs`' content-projection
-approach than `select`'s data-driven one). Run `npx jest` **and**
+Build `dropdown` at `meridian-ui/src/lib/dropdown/` — a click-to-open menu, sharing `select`'s
+trigger + `cdkConnectedOverlay` + panel shape but, unlike `select`, the panel body is arbitrary
+*projected* menu-item content rather than a data-driven `options: SelectOption<T>[]` array (closer
+to how `tooltip`/`tabs` use content projection). Needs a concrete API decision before writing code
+— two realistic shapes, pick one and note the choice in Decisions:
+1. **Single component, two projection slots**: `<mr-dropdown><button mr-dropdown-trigger>Menu
+   </button><a mr-dropdown-item href="...">Profile</a>...</mr-dropdown>`, using Angular's
+   multi-slot `<ng-content select="...">` (one default/unslotted region for the trigger, one
+   `select="[mrDropdownItem]"`-matched region — or an attribute-selector marker directive — for
+   menu items). Simpler public API (one tag), but needs either an attribute-selector marker
+   directive for items (a `MrDropdownItem` *directive*, not component, purely for styling +
+   keyboard-nav wiring — CONVENTIONS.md's component-file-set pattern doesn't quite cover
+   directives, improvise a minimal one) or accepts plain unstyled `<a>`/`<button>` children.
+2. **Compound component like `tabs`**: `MrDropdown` (trigger + overlay host, `contentChildren
+   (MrDropdownItem)` to read/manage each item, same pattern as `MrTabs`) + `MrDropdownItem`
+   (an actual styled `@Component`, `mr-dropdown-item`, handling its own hover/focus/disabled
+   styling and emitting a `select` output `MrDropdown` listens for to close the panel) — more
+   consistent with the `tabs` precedent already in this codebase (prefer this unless it proves
+   awkward, same reasoning `radio` used to prefer standalone CVA consistency over inventing a new
+   shape).
+Either way: click trigger toggles the panel (not hover, unlike `tooltip`); Escape and an outside
+click close it (`cdkConnectedOverlay`'s `(backdropClick)`/`(detach)`, same as `select`); arrow-key
+navigation between items and Enter/Space to activate the focused item is the accessible baseline
+(`role="menu"` on the panel, `role="menuitem"` on each item) — don't skip this, a dropdown menu
+without keyboard support is a real accessibility gap, not a nice-to-have. No CVA — a dropdown menu
+(of actions/links) isn't a form control, only `select` is. After `dropdown`, `modal` is next (also
+`cdkConnectedOverlay`-or-`cdkOverlay`-based, but centered + backdrop + focus-trap — CDK's
+`FocusTrap`/`cdk/a11y` will matter there). Run `npx jest` **and**
 `npx ng-packagr -p ng-package.json` after each — see the ng-packagr gotchas below, jest alone is
 not sufficient. Add each export to `meridian-ui/src/index.ts` (tsconfig/jest path mappings already
 reserved).
@@ -161,6 +176,6 @@ reserved).
   turn out to matter — that would need the secondary-entry-point approach instead.
 
 ## Known issues
-- None. `npm install`, `npx jest` (84 tests across
-  icon/button/label/input-field/select/checkbox/radio/toggle/tabs), and
+- None. `npm install`, `npx jest` (94 tests across
+  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip), and
   `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`) are all green as of this update.
