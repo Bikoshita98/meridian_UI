@@ -1,8 +1,8 @@
 # Build Status
-Last updated: 2026-09-17T15:00:00Z, after: avatar component built (`AvatarSize`/`AvatarShape`;
-`size` reuses `button`'s exact `h-*`/`w-*` height scale so an avatar lines up with a same-size
-button in a toolbar; image `src` with an initials fallback, derived from `name` or overridden via
-an explicit `initials` input), full toolchain validated (jest, ng-packagr build all green)
+Last updated: 2026-09-17T15:09:00Z, after: pagination component built (`MrPagination`: plain
+`[page]`/`(pageChange)` — not a `ControlValueAccessor`, a pager isn't a form control; windowed
+page-number layout with ellipsis truncation for large page counts; `PaginationSize` reuses
+`button`'s `h-*`/`w-*` scale), full toolchain validated (jest, ng-packagr build all green)
 
 ## Component checklist
 - [x] icon — done (MrIcon wraps @ng-icons/core + @ng-icons/lucide; tests pass)
@@ -109,8 +109,21 @@ an explicit `initials` input), full toolchain validated (jest, ng-packagr build 
       `aria-label` (from `alt`, falling back to `name`) only while showing the initials fallback —
       the `<img>`'s own `alt` already provides the accessible name when the image is showing, so
       the wrapper role would be redundant/double-announced there. Tests pass)
-- [ ] pagination — not started (build this next)
-- [ ] table — not started
+- [x] pagination — done (MrPagination: a single `@Component`, no compound container/item split like
+      `tabs` — page items are data-driven from `totalPages`/`page`, not projected content, so there
+      was nothing to query with `contentChildren`. Plain `[page]`/`(pageChange)`, deliberately not a
+      `ControlValueAccessor` — not a form control, same reasoning as `tabs`' `[selected]`/
+      `(selectedChange)`. Renders a windowed layout — first page, last page, one sibling either side
+      of the current page, collapsing the rest into a single ellipsis per side (standard
+      MUI-`usePagination`-style algorithm, `siblingCount` fixed at 1, not exposed as an input for
+      v1) — falling back to showing every page with no ellipsis when they all fit. The ellipsis
+      itself is a non-interactive `<span>` (a `<mr-icon name="moreHorizontal">`), not a button — no
+      "jump by N" affordance in v1, nobody asked for one. Prev/next are native `<button>`s disabled
+      at the first/last page via computed `isFirstPage`/`isLastPage`. `PaginationSize` (`xs`–`xl`)
+      reuses `button`'s exact `h-*`/`w-*` scale, same precedent as `avatar`; page/prev/next/ellipsis
+      all share one fixed square footprint per size so a row lines up evenly. Tests pass — see the
+      new testing gotcha below about a test host's own `@Output`-bound field)
+- [ ] table — not started (build this next)
 - [ ] toast — not started
 - [ ] spinner — not started
 - [x] label — done (internal-only helper, not part of the public 18; `<mr-label>` wraps a native
@@ -118,21 +131,19 @@ an explicit `initials` input), full toolchain validated (jest, ng-packagr build 
       Decisions)
 
 ## Next step
-Build `pagination` at `meridian-ui/src/lib/pagination/`. First of the remaining three to need real
-interactive state (current page at minimum — decide whether it's a plain `@Input()`/`@Output()`
-pair or a `ControlValueAccessor`-style two-way `[(page)]`; a pager isn't a form control in the
-`input-field`/`select` sense, so plain `[page]`/`(pageChange)` like `tabs`'s `[selected]`/
-`(selectedChange)` is probably the right call rather than forcing CVA where it doesn't fit).
-Needs to decide how to render page numbers for large page counts (ellipsis truncation windowing
-around the current page) versus just prev/next for a v1 — check BUILD_PROMPT.md for any explicit
-requirement before inventing a truncation algorithm nobody asked for. Likely wants a `PaginationSize`
-enum (reuse the same `xs`–`xl` scale precedent as `button`/`avatar` if a size axis is warranted) and
-disabled-state handling on the prev/next controls at the first/last page. After `pagination`,
-`table` and `toast`/`spinner` remain — `toast`/`spinner` are likely simple, `table` will need real
-interactive state too (sort/selection) so budget more time for it. Run `npx jest` **and**
-`npx ng-packagr -p ng-package.json` after each — see the ng-packagr gotchas below, jest alone is
-not sufficient. Add each export to `meridian-ui/src/index.ts` (tsconfig/jest path mappings already
-reserved).
+Build `table` at `meridian-ui/src/lib/table/`. The last component needing real interactive state
+(sort direction/column at minimum; decide whether row selection belongs in v1 or is a reasonable
+cut — check BUILD_PROMPT.md before inventing scope). Likely a compound component like `tabs` —
+probably `MrTable` (wraps a native `<table>`, owns sort state) + column/cell projection, or a
+simpler `columns`/`rows` data-input API like `select`'s `options: SelectOption<T>[]` — weigh which
+keeps the component simpler given nothing in BUILD_PROMPT.md mandates a compound structure.
+Sortable column headers need a click handler + an indicator icon (`chevronUp`/`chevronDown` already
+in `MERIDIAN_ICONS`, same icons `select`'s trigger and `dropdown` use) and `aria-sort` on the `<th>`.
+After `table`, only `toast` and `spinner` remain — both are likely simple (`toast` will want
+timed-dismissal state via `setTimeout`, similar to `tooltip`'s `showDelay`/`hideDelay` pattern
+rather than RxJS). Run `npx jest` **and** `npx ng-packagr -p ng-package.json` after each — see the
+ng-packagr gotchas below, jest alone is not sufficient. Add each export to
+`meridian-ui/src/index.ts` (tsconfig/jest path mappings already reserved).
 
 ## Testing gotchas to remember
 - A plain field mutation on a TestBed-created component's own instance (e.g.
@@ -182,6 +193,15 @@ reserved).
   and drive it with `fixture.componentRef.setInput(...)`, exactly like `button.component.spec.ts`'s
   `ButtonWithIconHost`, even though the host is single-purpose and only exists in the spec file. See
   `modal.component.spec.ts`'s `ModalHost`.
+- Same gotcha again, one more shape: a test host field that's *also* the target of an
+  `(outputChange)="field = $event"` two-way test binding (e.g. `pagination`'s
+  `[page]="page" (pageChange)="page = $event"`) still needs to be a real `@Input()` on the host if
+  the *test itself* is ever going to reassign it directly after the first `detectChanges()` (as
+  opposed to only ever being reassigned by the component's own output, which goes through Angular's
+  normal event-binding path and doesn't need this). Assigning it before the first `detectChanges()`
+  (an initial-value test, like `tabs`' "respects an initial non-zero selected input") never needs
+  this — only a *subsequent* direct assignment from test code does. See
+  `pagination.component.spec.ts`'s `PaginationHost.page`.
 
 ## Decisions / deviations from BUILD_PROMPT.md
 - No monorepo tooling exists in this repo (empty directory to start), so per the prompt's own
@@ -237,6 +257,6 @@ reserved).
   turn out to matter — that would need the secondary-entry-point approach instead.
 
 ## Known issues
-- None. `npm install`, `npx jest` (128 tests across
-  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip/dropdown/modal/card/badge/avatar),
+- None. `npm install`, `npx jest` (137 tests across
+  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip/dropdown/modal/card/badge/avatar/pagination),
   and `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`) are all green as of this update.

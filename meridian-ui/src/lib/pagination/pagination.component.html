@@ -1,0 +1,27 @@
+<nav [class]="navClass()" aria-label="Pagination">
+  <button type="button" [class]="navButtonClass()" [disabled]="isFirstPage()" aria-label="Previous page" (click)="prev()">
+    <mr-icon name="chevronLeft" [size]="size" />
+  </button>
+
+  @for (item of pageItems(); track $index) {
+    @if (item === 'ellipsis') {
+      <span [class]="ellipsisClass()" aria-hidden="true">
+        <mr-icon name="moreHorizontal" [size]="size" />
+      </span>
+    } @else {
+      <button
+        type="button"
+        [class]="pageButtonClass(item)"
+        [attr.aria-current]="item === page ? 'page' : null"
+        [attr.aria-label]="'Page ' + item"
+        (click)="goTo(item)"
+      >
+        {{ item }}
+      </button>
+    }
+  }
+
+  <button type="button" [class]="navButtonClass()" [disabled]="isLastPage()" aria-label="Next page" (click)="next()">
+    <mr-icon name="chevronRight" [size]="size" />
+  </button>
+</nav>
