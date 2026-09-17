@@ -1,5 +1,7 @@
 # Build Status
-Last updated: 2026-09-15T17:07:00Z, after: dropdown component built (compound MrDropdown + MrDropdownItem, CDK FocusKeyManager for arrow-key nav), full toolchain validated (jest, ng-packagr build all green)
+Last updated: 2026-09-17T03:11:00Z, after: modal component built (imperative CDK Overlay API via
+`Overlay`/`TemplatePortal`, `CdkTrapFocus` for focus trapping, manual focus restoration), full
+toolchain validated (jest, ng-packagr build all green)
 
 ## Component checklist
 - [x] icon — done (MrIcon wraps @ng-icons/core + @ng-icons/lucide; tests pass)
@@ -61,8 +63,22 @@ Last updated: 2026-09-15T17:07:00Z, after: dropdown component built (compound Mr
       item DOM doesn't exist until the next render, same as `*ngIf`). `DropdownPosition`
       (`bottom-start`/`bottom-end`/`top-start`/`top-end`) maps to `ConnectedPosition[]` with a
       vertical-flip fallback, same pattern as `tooltip`. Tests pass)
-- [ ] modal — not started (build this next)
-- [ ] card — not started
+- [x] modal — done (MrModal: the first overlay component using CDK Overlay's *imperative* API
+      instead of `cdkConnectedOverlay` — no trigger to anchor to, so it injects `Overlay` directly,
+      creates an `OverlayRef` via `overlay.position().global().centerHorizontally()
+      .centerVertically()`, and attaches a `TemplatePortal` built from the component's own
+      `@ViewChild(TemplateRef)` + `ViewContainerRef`. Public API stays declarative — `[open]`/
+      `(openChange)`, no service-based `open()`/`close()` — with a constructor `effect()` watching
+      a signal-backed `open` input that creates/disposes the `OverlayRef` as it flips. Focus trap
+      via CDK's `cdkTrapFocus`/`cdkTrapFocusAutoCapture` (`@angular/cdk/a11y`) on the panel;
+      focus restoration done by hand (`document.activeElement` captured right before attach,
+      `.focus()` called on it in `detach()`). Closes on Escape (explicit `(keydown.escape)`,
+      `cdkTrapFocus` only traps Tab), backdrop click (gated by an `@Input() dismissible = true`),
+      or the `open` input flipping false externally. `ModalSize` (`sm`/`md`/`lg`/`xl`) maps to
+      `max-w-*` in `modal.variants.ts`; no `status` enum. No CVA — a modal isn't a form control.
+      Tests pass, including focus-trap/restoration assertions — see the new testing gotcha below
+      about jsdom and `cdkTrapFocus`)
+- [ ] card — not started (build this next)
 - [ ] badge — not started
 - [ ] avatar — not started
 - [ ] pagination — not started
@@ -74,41 +90,17 @@ Last updated: 2026-09-15T17:07:00Z, after: dropdown component built (compound Mr
       Decisions)
 
 ## Next step
-Build `modal` at `meridian-ui/src/lib/modal/`. Architecturally different from every other overlay
-component so far: `select`/`dropdown`/`tooltip` all use the *declarative* `cdkConnectedOverlay`
-directive, which is hard-wired to *connected* (anchored-to-a-trigger-element) positioning — a modal
-has no trigger to anchor to, it's centered on the viewport, so it needs CDK Overlay's lower-level,
-*imperative* API instead: inject `Overlay` from `@angular/cdk/overlay` directly, create an
-`OverlayRef` via `overlay.create({ positionStrategy: overlay.position().global()
-.centerHorizontally().centerVertically(), hasBackdrop: true, backdropClass: ... })`, and attach the
-modal's own content to it via a `TemplatePortal` (`@ViewChild(TemplateRef)` on the modal's own
-`<ng-template>` wrapping its `<ng-content>`, instantiated with the component's own
-`ViewContainerRef`). Keep the *public* API declarative and consistent with the rest of the library
-rather than introducing a service-based open()/close() pattern this codebase doesn't use anywhere
-else: `<mr-modal [open]="isOpen" (openChange)="isOpen = $event">...</mr-modal>`, where the
-component's own `ngOnChanges`/an `effect()` watching an `open` signal creates/attaches the
-`OverlayRef` when it flips true and disposes it when it flips false (dispose in `ngOnDestroy` too,
-in case the host is destroyed while still open). Two real accessibility requirements, not optional:
-1. **Focus trap** — Tab must not escape to background content while the modal is open. Use CDK's
-   `cdk/a11y` `CdkTrapFocus` directive (`cdkTrapFocus` + `cdkTrapFocusAutoCapture` on the modal
-   panel content) rather than hand-rolling tab-key interception.
-2. **Focus restoration** — capture `document.activeElement` right before opening (this is the
-   trigger button in the calling app), and restore focus to it when the modal closes. CDK's
-   `FocusMonitor`/`cdk/a11y` has helpers for this, or it's simple enough to do by hand with a saved
-   element reference — either is fine, just don't skip it.
-Closing: Escape key (while trapped-focus is active, still needs an explicit `(keydown.escape)`
-listener — `cdkTrapFocus` only traps Tab, it doesn't add an Escape handler), backdrop click (an
-`@Input() dismissible = true` to allow disabling backdrop-click-to-close for "must choose an
-option" modals is a reasonable, minimal addition — don't go further than that, e.g. no need for a
-whole confirmation-before-close system). `ModalSize` enum (`sm`/`md`/`lg`/`xl`, controlling panel
-`max-w-*`) makes sense here since modal width genuinely varies by content; skip a `status` enum,
-nothing color-coded about a modal's own chrome. No CVA. After `modal`, the remaining components
-(`card`, `badge`, `avatar`, `pagination`, `table`, `toast`, `spinner`) are all simpler, non-overlay
-presentational components — `card`/`badge`/`avatar` in particular should go quickly, matching
-`icon`'s minimal pattern rather than any of the CVA/overlay components. Run `npx jest` **and**
-`npx ng-packagr -p ng-package.json` after each — see the ng-packagr gotchas below, jest alone is
-not sufficient. Add each export to `meridian-ui/src/index.ts` (tsconfig/jest path mappings already
-reserved).
+Build `card` at `meridian-ui/src/lib/card/`. With `modal` done, every overlay-positioned component
+(`select`/`dropdown`/`tooltip` via `cdkConnectedOverlay`, `modal` via imperative CDK Overlay) is
+built — the remaining seven (`card`, `badge`, `avatar`, `pagination`, `table`, `toast`, `spinner`)
+are all simpler, non-overlay presentational components. `card`/`badge`/`avatar` in particular
+should go quickly, matching `icon`'s minimal pattern (a single `@Component` with a size/variant
+enum or two feeding a `tv()` config in `<name>.variants.ts`) rather than any of the CVA/overlay
+components — no `ControlValueAccessor`, no CDK. `card` is a simple container: think a
+`CardVariant` (e.g. `elevated`/`outlined`) and maybe padding-size enum, projected `<ng-content>`,
+no interactive state of its own. Run `npx jest` **and** `npx ng-packagr -p ng-package.json` after
+each — see the ng-packagr gotchas below, jest alone is not sufficient. Add each export to
+`meridian-ui/src/index.ts` (tsconfig/jest path mappings already reserved).
 
 ## Testing gotchas to remember
 - A plain field mutation on a TestBed-created component's own instance (e.g.
@@ -143,6 +135,21 @@ reserved).
   `keyCode` explicitly in a test that dispatches a key event through a CDK key manager (Angular's
   own `(keydown.escape)`-style template bindings are unaffected — those parse `.key`, not
   `.keyCode`). See `dropdown.component.spec.ts`'s ArrowDown test.
+- jsdom does no layout, so every element reports zero geometry (`offsetWidth`/`offsetHeight`/
+  `getClientRects()` are all always empty). CDK's `InteractivityChecker.isVisible` requires
+  non-zero geometry, so anything that depends on it — notably `cdkTrapFocus`'s
+  `cdkTrapFocusAutoCapture`, used by `modal` — can never find a focusable element under jsdom and
+  silently leaves focus on `<body>`. Stub `jest.spyOn(HTMLElement.prototype,
+  'getClientRects').mockReturnValue([{}] as unknown as DOMRectList)` in `beforeEach`
+  (`jest.restoreAllMocks()` in `afterEach`) to compensate — this is a jsdom gap, not a bug in the
+  component, and real browsers give elements real geometry. See `modal.component.spec.ts`.
+- When a host wraps a component whose input is driven by an *external* signal (e.g. `modal`'s
+  `[open]`, flipped by the consuming app, not by a click inside the component itself), the same
+  "plain field mutation doesn't reliably retrigger CD" gotcha above applies to the *test host's own*
+  field just as much as to the tested component's — declare the host's field as a real `@Input()`
+  and drive it with `fixture.componentRef.setInput(...)`, exactly like `button.component.spec.ts`'s
+  `ButtonWithIconHost`, even though the host is single-purpose and only exists in the spec file. See
+  `modal.component.spec.ts`'s `ModalHost`.
 
 ## Decisions / deviations from BUILD_PROMPT.md
 - No monorepo tooling exists in this repo (empty directory to start), so per the prompt's own
@@ -198,6 +205,6 @@ reserved).
   turn out to matter — that would need the secondary-entry-point approach instead.
 
 ## Known issues
-- None. `npm install`, `npx jest` (103 tests across
-  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip/dropdown), and
+- None. `npm install`, `npx jest` (112 tests across
+  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip/dropdown/modal), and
   `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`) are all green as of this update.

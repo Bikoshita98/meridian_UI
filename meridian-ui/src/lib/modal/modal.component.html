@@ -1,0 +1,13 @@
+<ng-template #modalTemplate>
+  <div
+    role="dialog"
+    aria-modal="true"
+    tabindex="-1"
+    cdkTrapFocus
+    cdkTrapFocusAutoCapture
+    [class]="panelClass()"
+    (keydown.escape)="close()"
+  >
+    <ng-content></ng-content>
+  </div>
+</ng-template>
