@@ -1,0 +1,42 @@
+<div [class]="wrapperClass()">
+  <table [class]="tableClass()">
+    <thead>
+      <tr [class]="headerRowClass()">
+        @for (column of columns; track column.key) {
+          <th
+            scope="col"
+            [class]="headerCellClass(column)"
+            [attr.aria-sort]="column.sortable ? ariaSortFor(column) : null"
+            (click)="toggleSort(column)"
+          >
+            <span class="inline-flex items-center gap-3xs">
+              {{ column.header }}
+              @if (column.sortable) {
+                <mr-icon
+                  [name]="sortDirectionFor(column) === 'desc' ? 'chevronDown' : 'chevronUp'"
+                  size="xs"
+                  [class.opacity-30]="sortDirectionFor(column) === null"
+                />
+              }
+            </span>
+          </th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @if (sortedRows().length === 0) {
+        <tr>
+          <td [attr.colspan]="columns.length" [class]="emptyCellClass()">{{ emptyMessage }}</td>
+        </tr>
+      } @else {
+        @for (row of sortedRows(); track $index) {
+          <tr [class]="bodyRowClass()">
+            @for (column of columns; track column.key) {
+              <td [class]="cellClass(column)">{{ row[column.key] }}</td>
+            }
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>

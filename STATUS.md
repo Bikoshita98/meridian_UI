@@ -1,8 +1,9 @@
 # Build Status
-Last updated: 2026-09-17T15:09:00Z, after: pagination component built (`MrPagination`: plain
-`[page]`/`(pageChange)` — not a `ControlValueAccessor`, a pager isn't a form control; windowed
-page-number layout with ellipsis truncation for large page counts; `PaginationSize` reuses
-`button`'s `h-*`/`w-*` scale), full toolchain validated (jest, ng-packagr build all green)
+Last updated: 2026-09-17T15:31:00Z, after: table component built (`MrTable<T>`: generic
+`columns: TableColumn<T>[]`/`rows: T[]` data-input API, no compound container/item split; in-memory
+column sort with `(sortChange)` output for callers doing server-side sort; strict-templates build
+confirmed `keyof T`-typed cell access compiles under AOT), full toolchain validated (jest,
+ng-packagr build all green)
 
 ## Component checklist
 - [x] icon — done (MrIcon wraps @ng-icons/core + @ng-icons/lucide; tests pass)
@@ -123,27 +124,51 @@ page-number layout with ellipsis truncation for large page counts; `PaginationSi
       reuses `button`'s exact `h-*`/`w-*` scale, same precedent as `avatar`; page/prev/next/ellipsis
       all share one fixed square footprint per size so a row lines up evenly. Tests pass — see the
       new testing gotcha below about a test host's own `@Output`-bound field)
-- [ ] table — not started (build this next)
-- [ ] toast — not started
+- [x] table — done (MrTable<T>: went with the `select`-style generic data-input API (`columns:
+      TableColumn<T>[]`, `rows: T[]`) rather than a `tabs`-style compound container/item split —
+      cell values come from `column.key` (a `keyof T`) indexing straight into each row, so there
+      was no projected content to query with `contentChildren`. Sort state (`sortKey`/
+      `sortDirection`) is internal, toggled by clicking a `sortable` column header: first click on
+      a column sorts ascending, a second click on the *same* column flips to descending, clicking a
+      *different* sortable column resets to ascending on that column — no third "unsorted" state in
+      the cycle, deliberately, to avoid needing to track/restore original row order. Sorts
+      in-memory by default (generic `<`/`>` comparator, fine for the string/number/Date values a
+      data table actually renders) and also emits `(sortChange)` with `{ key, direction }` so a
+      caller doing server-side sorting can ignore the in-memory result and re-fetch instead.
+      `aria-sort` (`ascending`/`descending`/`none`) only set on sortable `<th>`s, omitted entirely on
+      non-sortable ones per WAI-ARIA authoring practice. No row selection in v1 — nothing in
+      BUILD_PROMPT.md asked for it and it's a reasonable cut. `TableSize` (`sm`/`md`/`lg`) controls
+      cell padding/text density — deliberately a narrower 3-step scale, not `button`'s `xs`–`xl`,
+      since padding density and control height aren't the same axis (same reasoning `card` used for
+      its own `CardPadding` scale). Empty state (`emptyMessage`, default "No data available") shown
+      as a single row spanning every column via `colspan`. Tests pass)
+- [ ] toast — not started (build this next)
 - [ ] spinner — not started
 - [x] label — done (internal-only helper, not part of the public 18; `<mr-label>` wraps a native
       `<label>` with `for`/`size`/`required`(asterisk marker)/`disabled`(dims via opacity); see
       Decisions)
 
 ## Next step
-Build `table` at `meridian-ui/src/lib/table/`. The last component needing real interactive state
-(sort direction/column at minimum; decide whether row selection belongs in v1 or is a reasonable
-cut — check BUILD_PROMPT.md before inventing scope). Likely a compound component like `tabs` —
-probably `MrTable` (wraps a native `<table>`, owns sort state) + column/cell projection, or a
-simpler `columns`/`rows` data-input API like `select`'s `options: SelectOption<T>[]` — weigh which
-keeps the component simpler given nothing in BUILD_PROMPT.md mandates a compound structure.
-Sortable column headers need a click handler + an indicator icon (`chevronUp`/`chevronDown` already
-in `MERIDIAN_ICONS`, same icons `select`'s trigger and `dropdown` use) and `aria-sort` on the `<th>`.
-After `table`, only `toast` and `spinner` remain — both are likely simple (`toast` will want
-timed-dismissal state via `setTimeout`, similar to `tooltip`'s `showDelay`/`hideDelay` pattern
-rather than RxJS). Run `npx jest` **and** `npx ng-packagr -p ng-package.json` after each — see the
-ng-packagr gotchas below, jest alone is not sufficient. Add each export to
-`meridian-ui/src/index.ts` (tsconfig/jest path mappings already reserved).
+Build `spinner` at `meridian-ui/src/lib/spinner/`. Should be the simplest remaining component —
+essentially `button`'s own inline loading spinner (`animate-spin rounded-pill border-md
+border-current border-t-transparent` sized via `[style.width]`/`[style.height]`, see
+`button.component.html`) pulled out into its own standalone component so it can be used outside a
+button (e.g. a loading placeholder over a `card` or `table`). Think a `SpinnerSize` enum (reuse the
+same `xs`–`xl` precedent as `button`/`avatar`/`pagination` — this one probably *should* match
+`icon`'s `ICON_SIZE_PX` scale directly, in pixels, rather than `button`'s `h-*` height classes,
+since a spinner is a decorative ring, not a control) and maybe a `color` axis (or just inherit
+`currentColor` like `button`'s does, needing no color prop at all — check whether a consumer would
+ever want a spinner in a color other than its surrounding text before adding one). Needs
+`role="status"` + visually-hidden text (or an `aria-label`) since it conveys a loading state with
+no visible text of its own. After `spinner`, only `toast` remains — that one's the more involved of
+the two: timed-dismissal state via `setTimeout` (similar to `tooltip`'s `showDelay`/`hideDelay`
+pattern, not RxJS) and likely wants a way to actually get toasts *onto* the screen (a service +
+an `<mr-toast-container>` host that a consumer mounts once at the app root, rather than a
+per-instance `<mr-toast>` a consumer places manually) — decide that architecture before starting,
+it's a bigger shape question than any component built so far. Run `npx jest` **and**
+`npx ng-packagr -p ng-package.json` after each — see the ng-packagr gotchas below, jest alone is
+not sufficient. Add each export to `meridian-ui/src/index.ts` (tsconfig/jest path mappings already
+reserved).
 
 ## Testing gotchas to remember
 - A plain field mutation on a TestBed-created component's own instance (e.g.
@@ -257,6 +282,6 @@ ng-packagr gotchas below, jest alone is not sufficient. Add each export to
   turn out to matter — that would need the secondary-entry-point approach instead.
 
 ## Known issues
-- None. `npm install`, `npx jest` (137 tests across
-  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip/dropdown/modal/card/badge/avatar/pagination),
+- None. `npm install`, `npx jest` (145 tests across
+  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip/dropdown/modal/card/badge/avatar/pagination/table),
   and `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`) are all green as of this update.
