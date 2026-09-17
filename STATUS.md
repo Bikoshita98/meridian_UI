@@ -1,8 +1,8 @@
 # Build Status
-Last updated: 2026-09-17T03:19:00Z, after: badge component built (`BadgeVariant`/`BadgeColor`, same
-7-color palette and filled/outline naming as `button`, feeding a `tv()` config with the same
-compound-variants-per-color-per-variant pattern), full toolchain validated (jest, ng-packagr build
-all green)
+Last updated: 2026-09-17T15:00:00Z, after: avatar component built (`AvatarSize`/`AvatarShape`;
+`size` reuses `button`'s exact `h-*`/`w-*` height scale so an avatar lines up with a same-size
+button in a toolbar; image `src` with an initials fallback, derived from `name` or overridden via
+an explicit `initials` input), full toolchain validated (jest, ng-packagr build all green)
 
 ## Component checklist
 - [x] icon — done (MrIcon wraps @ng-icons/core + @ng-icons/lucide; tests pass)
@@ -96,8 +96,20 @@ all green)
       other component owning its own enums) resolved via the same per-combination
       `compoundVariants` pattern `button` uses. No `size` enum — a badge is one fixed small size.
       Tests pass)
-- [ ] avatar — not started (build this next)
-- [ ] pagination — not started
+- [x] avatar — done (MrAvatar: `<span [class]="avatarClass()">` containing either an `<img>` or an
+      initials fallback `<span>`, matching `card`/`badge`'s minimal single-element pattern — no CDK,
+      no CVA (an avatar isn't a form control). `AvatarSize` (`xs`–`xl`) reuses `ButtonSize`'s exact
+      `h-*`/`w-*` pixel scale (redeclared as its own enum, same as every other component owning its
+      enums) so an avatar sits flush next to a same-size button. `AvatarShape` (`circle`/`square`)
+      maps to `rounded-pill`/`rounded-lg`. `initials` input takes precedence when set; otherwise
+      derived from `name` (first letter of the first two whitespace-separated words, uppercased) —
+      deliberately simple, no locale-aware word-boundary handling. `(error)` on the native `<img>`
+      flips an internal `imgError` signal to fall back to initials instead of a broken-image icon;
+      the signal resets whenever `src` is reassigned. Outer `<span>` gets `role="img"` +
+      `aria-label` (from `alt`, falling back to `name`) only while showing the initials fallback —
+      the `<img>`'s own `alt` already provides the accessible name when the image is showing, so
+      the wrapper role would be redundant/double-announced there. Tests pass)
+- [ ] pagination — not started (build this next)
 - [ ] table — not started
 - [ ] toast — not started
 - [ ] spinner — not started
@@ -106,19 +118,18 @@ all green)
       Decisions)
 
 ## Next step
-Build `avatar` at `meridian-ui/src/lib/avatar/`. Same minimal, non-overlay, non-CVA pattern as
-`card`/`badge` — a single `@Component`, no CDK, no `ControlValueAccessor`. An avatar shows a user's
-image, or an initials fallback when there's no `src` (or the image fails to load — handle
-`(error)` on the native `<img>` to fall back to initials rather than showing a broken-image icon).
-Think an `AvatarSize` enum (reuse `ButtonSize`'s xs–xl scale for consistency, redeclared as
-avatar's own enum like `badge` did for color) and maybe an `AvatarShape` enum (`circle`/`square`,
-mirroring `ButtonShape`'s naming, `circle` as the sensible default) rather than inventing new
-terminology. `initials` likely wants its own `@Input()` (derive from a `name` input, or accept
-pre-computed initials directly — pick whichever keeps the component simpler; deriving from a name
-via first-letter-of-first-two-words is reasonable but don't over-engineer locale/unicode edge
-cases nobody asked for). After `avatar`, `pagination`, `table`, `toast`, and `spinner` remain —
-`toast`/`spinner` are likely simple, `pagination`/`table` will need real interactive state (current
-page, sort/selection) so budget more time for those. Run `npx jest` **and**
+Build `pagination` at `meridian-ui/src/lib/pagination/`. First of the remaining three to need real
+interactive state (current page at minimum — decide whether it's a plain `@Input()`/`@Output()`
+pair or a `ControlValueAccessor`-style two-way `[(page)]`; a pager isn't a form control in the
+`input-field`/`select` sense, so plain `[page]`/`(pageChange)` like `tabs`'s `[selected]`/
+`(selectedChange)` is probably the right call rather than forcing CVA where it doesn't fit).
+Needs to decide how to render page numbers for large page counts (ellipsis truncation windowing
+around the current page) versus just prev/next for a v1 — check BUILD_PROMPT.md for any explicit
+requirement before inventing a truncation algorithm nobody asked for. Likely wants a `PaginationSize`
+enum (reuse the same `xs`–`xl` scale precedent as `button`/`avatar` if a size axis is warranted) and
+disabled-state handling on the prev/next controls at the first/last page. After `pagination`,
+`table` and `toast`/`spinner` remain — `toast`/`spinner` are likely simple, `table` will need real
+interactive state too (sort/selection) so budget more time for it. Run `npx jest` **and**
 `npx ng-packagr -p ng-package.json` after each — see the ng-packagr gotchas below, jest alone is
 not sufficient. Add each export to `meridian-ui/src/index.ts` (tsconfig/jest path mappings already
 reserved).
@@ -226,6 +237,6 @@ reserved).
   turn out to matter — that would need the secondary-entry-point approach instead.
 
 ## Known issues
-- None. `npm install`, `npx jest` (121 tests across
-  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip/dropdown/modal/card/badge),
+- None. `npm install`, `npx jest` (128 tests across
+  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip/dropdown/modal/card/badge/avatar),
   and `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`) are all green as of this update.

@@ -1,0 +1,11 @@
+<span
+  [class]="avatarClass()"
+  [attr.role]="showImage() ? null : 'img'"
+  [attr.aria-label]="showImage() ? null : resolvedAlt()"
+>
+  @if (showImage()) {
+    <img class="h-full w-full object-cover" [src]="src" [alt]="resolvedAlt()" (error)="onImageError()" />
+  } @else {
+    <span aria-hidden="true">{{ resolvedInitials() }}</span>
+  }
+</span>
