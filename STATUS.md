@@ -1,7 +1,7 @@
 # Build Status
-Last updated: 2026-09-17T03:11:00Z, after: modal component built (imperative CDK Overlay API via
-`Overlay`/`TemplatePortal`, `CdkTrapFocus` for focus trapping, manual focus restoration), full
-toolchain validated (jest, ng-packagr build all green)
+Last updated: 2026-09-17T03:16:00Z, after: card component built (first non-overlay, non-CVA
+component — `CardVariant`/`CardPadding` feeding a single `tv()` config), full toolchain validated
+(jest, ng-packagr build all green)
 
 ## Component checklist
 - [x] icon — done (MrIcon wraps @ng-icons/core + @ng-icons/lucide; tests pass)
@@ -78,8 +78,14 @@ toolchain validated (jest, ng-packagr build all green)
       `max-w-*` in `modal.variants.ts`; no `status` enum. No CVA — a modal isn't a form control.
       Tests pass, including focus-trap/restoration assertions — see the new testing gotcha below
       about jsdom and `cdkTrapFocus`)
-- [ ] card — not started (build this next)
-- [ ] badge — not started
+- [x] card — done (MrCard: the first non-overlay, non-CVA component — a single `<div [class]=
+      "cardClass()"><ng-content></ng-content></div>` matching `icon`'s minimal pattern. `CardVariant`
+      (`elevated`: `border-neutral-100` + `shadow-md`; `outlined`: `border-neutral-200`, no shadow)
+      and `CardPadding` (`none`/`sm`/`md`/`lg` mapping to `p-0`/`p-lg`/`p-xl`/`p-2xl` — deliberately
+      *not* reusing the same spacing-token names 1:1, since a card's smallest usable padding is
+      bigger than a button's). No `status`/`color` enum — a card's own chrome isn't color-coded.
+      Tests pass)
+- [ ] badge — not started (build this next)
 - [ ] avatar — not started
 - [ ] pagination — not started
 - [ ] table — not started
@@ -90,17 +96,20 @@ toolchain validated (jest, ng-packagr build all green)
       Decisions)
 
 ## Next step
-Build `card` at `meridian-ui/src/lib/card/`. With `modal` done, every overlay-positioned component
-(`select`/`dropdown`/`tooltip` via `cdkConnectedOverlay`, `modal` via imperative CDK Overlay) is
-built — the remaining seven (`card`, `badge`, `avatar`, `pagination`, `table`, `toast`, `spinner`)
-are all simpler, non-overlay presentational components. `card`/`badge`/`avatar` in particular
-should go quickly, matching `icon`'s minimal pattern (a single `@Component` with a size/variant
-enum or two feeding a `tv()` config in `<name>.variants.ts`) rather than any of the CVA/overlay
-components — no `ControlValueAccessor`, no CDK. `card` is a simple container: think a
-`CardVariant` (e.g. `elevated`/`outlined`) and maybe padding-size enum, projected `<ng-content>`,
-no interactive state of its own. Run `npx jest` **and** `npx ng-packagr -p ng-package.json` after
-each — see the ng-packagr gotchas below, jest alone is not sufficient. Add each export to
-`meridian-ui/src/index.ts` (tsconfig/jest path mappings already reserved).
+Build `badge` at `meridian-ui/src/lib/badge/`. Same minimal, non-overlay, non-CVA pattern `card`
+just used — a single `@Component`, no CDK, no `ControlValueAccessor`. A badge is a small inline
+status/label pill: think a `BadgeColor` enum (reuse the same 7 semantic colors `ButtonColor` uses —
+`primary`/`secondary`/`neutral`/`success`/`warning`/`error`/`info` — for consistency across the
+library) and maybe a `BadgeVariant` (`filled`/`outline`, mirroring the button's own naming) rather
+than inventing new terminology; skip a `size` enum unless content genuinely demands one, a badge is
+usually one fixed small size. Projected `<ng-content>` for the label text, optionally a leading
+`<mr-icon>` slot (check whether `content-projection` for an icon is worth it or overkill for v1 —
+`card` didn't need this, but a badge with a status dot or icon is common; use judgement, don't
+force it in if it complicates the API). After `badge`, `avatar` (also `icon`-simple: an image or
+initials fallback, a size enum, maybe a shape enum) should be quick too. Run `npx jest` **and**
+`npx ng-packagr -p ng-package.json` after each — see the ng-packagr gotchas below, jest alone is
+not sufficient. Add each export to `meridian-ui/src/index.ts` (tsconfig/jest path mappings already
+reserved).
 
 ## Testing gotchas to remember
 - A plain field mutation on a TestBed-created component's own instance (e.g.
@@ -205,6 +214,6 @@ each — see the ng-packagr gotchas below, jest alone is not sufficient. Add eac
   turn out to matter — that would need the secondary-entry-point approach instead.
 
 ## Known issues
-- None. `npm install`, `npx jest` (112 tests across
-  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip/dropdown/modal), and
+- None. `npm install`, `npx jest` (117 tests across
+  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip/dropdown/modal/card), and
   `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`) are all green as of this update.
