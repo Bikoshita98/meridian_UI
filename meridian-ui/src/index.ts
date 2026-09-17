@@ -3,6 +3,7 @@
  * (`@meridian/ui/button`) instead — see CONVENTIONS.md. This barrel exists only
  * for consumers who genuinely want the whole library at once.
  */
+export * from './lib/badge/public-api';
 export * from './lib/button/public-api';
 export * from './lib/card/public-api';
 export * from './lib/checkbox/public-api';

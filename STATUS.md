@@ -1,7 +1,8 @@
 # Build Status
-Last updated: 2026-09-17T03:16:00Z, after: card component built (first non-overlay, non-CVA
-component — `CardVariant`/`CardPadding` feeding a single `tv()` config), full toolchain validated
-(jest, ng-packagr build all green)
+Last updated: 2026-09-17T03:19:00Z, after: badge component built (`BadgeVariant`/`BadgeColor`, same
+7-color palette and filled/outline naming as `button`, feeding a `tv()` config with the same
+compound-variants-per-color-per-variant pattern), full toolchain validated (jest, ng-packagr build
+all green)
 
 ## Component checklist
 - [x] icon — done (MrIcon wraps @ng-icons/core + @ng-icons/lucide; tests pass)
@@ -85,8 +86,17 @@ component — `CardVariant`/`CardPadding` feeding a single `tv()` config), full 
       *not* reusing the same spacing-token names 1:1, since a card's smallest usable padding is
       bigger than a button's). No `status`/`color` enum — a card's own chrome isn't color-coded.
       Tests pass)
-- [ ] badge — not started (build this next)
-- [ ] avatar — not started
+- [x] badge — done (MrBadge: `<span [class]="badgeClass()"><ng-content></ng-content></span>`, no
+      dedicated icon slot — plain content projection is enough, a consumer can drop an `<mr-icon
+      size="xs">` straight into the projected content without any special wiring, same as any other
+      inline content; adding `contentChildren`-based icon auto-sizing (like `button`) would have
+      been overkill for v1. `BadgeVariant` (`filled`/`outline`) × `BadgeColor` (the same 7 semantic
+      colors as `ButtonColor` — `primary`/`secondary`/`neutral`/`success`/`warning`/`error`/`info`,
+      redeclared as badge's own enum rather than importing `ButtonColor`, consistent with every
+      other component owning its own enums) resolved via the same per-combination
+      `compoundVariants` pattern `button` uses. No `size` enum — a badge is one fixed small size.
+      Tests pass)
+- [ ] avatar — not started (build this next)
 - [ ] pagination — not started
 - [ ] table — not started
 - [ ] toast — not started
@@ -96,17 +106,19 @@ component — `CardVariant`/`CardPadding` feeding a single `tv()` config), full 
       Decisions)
 
 ## Next step
-Build `badge` at `meridian-ui/src/lib/badge/`. Same minimal, non-overlay, non-CVA pattern `card`
-just used — a single `@Component`, no CDK, no `ControlValueAccessor`. A badge is a small inline
-status/label pill: think a `BadgeColor` enum (reuse the same 7 semantic colors `ButtonColor` uses —
-`primary`/`secondary`/`neutral`/`success`/`warning`/`error`/`info` — for consistency across the
-library) and maybe a `BadgeVariant` (`filled`/`outline`, mirroring the button's own naming) rather
-than inventing new terminology; skip a `size` enum unless content genuinely demands one, a badge is
-usually one fixed small size. Projected `<ng-content>` for the label text, optionally a leading
-`<mr-icon>` slot (check whether `content-projection` for an icon is worth it or overkill for v1 —
-`card` didn't need this, but a badge with a status dot or icon is common; use judgement, don't
-force it in if it complicates the API). After `badge`, `avatar` (also `icon`-simple: an image or
-initials fallback, a size enum, maybe a shape enum) should be quick too. Run `npx jest` **and**
+Build `avatar` at `meridian-ui/src/lib/avatar/`. Same minimal, non-overlay, non-CVA pattern as
+`card`/`badge` — a single `@Component`, no CDK, no `ControlValueAccessor`. An avatar shows a user's
+image, or an initials fallback when there's no `src` (or the image fails to load — handle
+`(error)` on the native `<img>` to fall back to initials rather than showing a broken-image icon).
+Think an `AvatarSize` enum (reuse `ButtonSize`'s xs–xl scale for consistency, redeclared as
+avatar's own enum like `badge` did for color) and maybe an `AvatarShape` enum (`circle`/`square`,
+mirroring `ButtonShape`'s naming, `circle` as the sensible default) rather than inventing new
+terminology. `initials` likely wants its own `@Input()` (derive from a `name` input, or accept
+pre-computed initials directly — pick whichever keeps the component simpler; deriving from a name
+via first-letter-of-first-two-words is reasonable but don't over-engineer locale/unicode edge
+cases nobody asked for). After `avatar`, `pagination`, `table`, `toast`, and `spinner` remain —
+`toast`/`spinner` are likely simple, `pagination`/`table` will need real interactive state (current
+page, sort/selection) so budget more time for those. Run `npx jest` **and**
 `npx ng-packagr -p ng-package.json` after each — see the ng-packagr gotchas below, jest alone is
 not sufficient. Add each export to `meridian-ui/src/index.ts` (tsconfig/jest path mappings already
 reserved).
@@ -214,6 +226,6 @@ reserved).
   turn out to matter — that would need the secondary-entry-point approach instead.
 
 ## Known issues
-- None. `npm install`, `npx jest` (117 tests across
-  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip/dropdown/modal/card), and
-  `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`) are all green as of this update.
+- None. `npm install`, `npx jest` (121 tests across
+  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip/dropdown/modal/card/badge),
+  and `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`) are all green as of this update.
