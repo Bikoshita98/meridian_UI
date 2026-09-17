@@ -16,6 +16,7 @@ export * from './lib/modal/public-api';
 export * from './lib/pagination/public-api';
 export * from './lib/radio/public-api';
 export * from './lib/select/public-api';
+export * from './lib/spinner/public-api';
 export * from './lib/table/public-api';
 export * from './lib/tabs/public-api';
 export * from './lib/toggle/public-api';

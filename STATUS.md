@@ -1,9 +1,9 @@
 # Build Status
-Last updated: 2026-09-17T15:31:00Z, after: table component built (`MrTable<T>`: generic
-`columns: TableColumn<T>[]`/`rows: T[]` data-input API, no compound container/item split; in-memory
-column sort with `(sortChange)` output for callers doing server-side sort; strict-templates build
-confirmed `keyof T`-typed cell access compiles under AOT), full toolchain validated (jest,
-ng-packagr build all green)
+Last updated: 2026-09-17T16:45:00Z, after: spinner component built (`MrSpinner`: the loading ring
+`button` already renders inline, pulled out standalone; `SpinnerSize` maps to `icon`'s own
+`ICON_SIZE_PX` pixel scale rather than `button`'s `h-*` classes; added a `SpinnerColor` axis since
+this component library has no host-class-forwarding mechanism a consumer could otherwise use to
+recolor it), full toolchain validated (jest, ng-packagr build all green). Only `toast` remains.
 
 ## Component checklist
 - [x] icon — done (MrIcon wraps @ng-icons/core + @ng-icons/lucide; tests pass)
@@ -143,32 +143,48 @@ ng-packagr build all green)
       its own `CardPadding` scale). Empty state (`emptyMessage`, default "No data available") shown
       as a single row spanning every column via `colspan`. Tests pass)
 - [ ] toast — not started (build this next)
-- [ ] spinner — not started
+- [x] spinner — done (MrSpinner: single `<span role="status" [attr.aria-label]="label">`, the same
+      `animate-spin` + current-color ring markup `button` already renders for its own loading
+      state, pulled out standalone so it can sit anywhere (a loading placeholder over a `card`/
+      `table`), not just inside a `button`. `SpinnerSize` (`xs`–`xl`) deliberately maps to `icon`'s
+      own `ICON_SIZE_PX` pixel scale (imported directly, not redeclared) rather than `button`'s
+      `h-*` height classes — a spinner is a decorative ring sized like an icon, not a control with
+      a height. Added a `SpinnerColor` axis (the same 7 semantic colors every other component
+      redeclares) after concluding a consumer has no other way to recolor it: this library's
+      components render their own `[class]`-bound inner element rather than forwarding a host
+      `class` attribute anywhere, so "just wrap it and set text-color" (which would work in most
+      other component libraries) doesn't actually work here. `label` input (default `"Loading"`)
+      is the only accessible text — conveyed via `aria-label` on the `role="status"` element
+      itself, not a separate visually-hidden child, since there's no other content on the element
+      to conflict with it. No `role="status"` region needed elsewhere since the element *is* the
+      status region. Tests pass)
 - [x] label — done (internal-only helper, not part of the public 18; `<mr-label>` wraps a native
       `<label>` with `for`/`size`/`required`(asterisk marker)/`disabled`(dims via opacity); see
       Decisions)
 
 ## Next step
-Build `spinner` at `meridian-ui/src/lib/spinner/`. Should be the simplest remaining component —
-essentially `button`'s own inline loading spinner (`animate-spin rounded-pill border-md
-border-current border-t-transparent` sized via `[style.width]`/`[style.height]`, see
-`button.component.html`) pulled out into its own standalone component so it can be used outside a
-button (e.g. a loading placeholder over a `card` or `table`). Think a `SpinnerSize` enum (reuse the
-same `xs`–`xl` precedent as `button`/`avatar`/`pagination` — this one probably *should* match
-`icon`'s `ICON_SIZE_PX` scale directly, in pixels, rather than `button`'s `h-*` height classes,
-since a spinner is a decorative ring, not a control) and maybe a `color` axis (or just inherit
-`currentColor` like `button`'s does, needing no color prop at all — check whether a consumer would
-ever want a spinner in a color other than its surrounding text before adding one). Needs
-`role="status"` + visually-hidden text (or an `aria-label`) since it conveys a loading state with
-no visible text of its own. After `spinner`, only `toast` remains — that one's the more involved of
-the two: timed-dismissal state via `setTimeout` (similar to `tooltip`'s `showDelay`/`hideDelay`
-pattern, not RxJS) and likely wants a way to actually get toasts *onto* the screen (a service +
-an `<mr-toast-container>` host that a consumer mounts once at the app root, rather than a
-per-instance `<mr-toast>` a consumer places manually) — decide that architecture before starting,
-it's a bigger shape question than any component built so far. Run `npx jest` **and**
-`npx ng-packagr -p ng-package.json` after each — see the ng-packagr gotchas below, jest alone is
-not sufficient. Add each export to `meridian-ui/src/index.ts` (tsconfig/jest path mappings already
-reserved).
+Build `toast` at `meridian-ui/src/lib/toast/` — the last of the 18. This is a bigger shape question
+than any component built so far: decide the architecture *before* writing code. A per-instance
+`<mr-toast>` a consumer places manually (like every other component) doesn't fit how toasts
+actually get used — they need to be triggered imperatively from anywhere in an app (a click
+handler, an HTTP error interceptor, etc.), not sit in a template waiting to be shown. The likely
+shape: an injectable `MrToastService` with a `show(message, options)`-style API that pushes onto an
+internal signal-backed queue, plus an `<mr-toast-container>` component a consumer mounts once near
+the app root (or at least once per overlay context) that reads that queue and renders/positions the
+actual toast elements — probably via CDK Overlay again, like `modal`'s imperative `Overlay` API
+(global position, but anchored to a corner via `.position().global().top()/.bottom()/.left()/
+.right()` instead of centered). Each toast needs its own timed auto-dismiss (`setTimeout`, same
+non-RxJS precedent as `tooltip`'s `showDelay`/`hideDelay`) with likely a hover-to-pause affordance,
+plus a manual dismiss control (reuse `MrIcon`'s `x` icon, already in `MERIDIAN_ICONS`). Think a
+`ToastVariant`/`status` axis (success/warning/error/info, matching the semantic palette every other
+component redeclares) since a toast's whole purpose is usually to communicate a status. `role="status"`
+or `role="alert"` (`alert` for anything error-like, interrupts immediately; `status` for anything
+else, polite) on each toast — same reasoning as `spinner`'s `role="status"`, but toast messages
+*do* have visible text so no separate `aria-label` is needed here, unlike `spinner`. Run `npx jest`
+**and** `npx ng-packagr -p ng-package.json` after — see the ng-packagr gotchas below, jest alone is
+not sufficient (a CDK-Overlay-based component especially needs the `OverlayContainer` test-cleanup
+gotcha below). Add the export to `meridian-ui/src/index.ts` (tsconfig/jest path mapping already
+reserved). This is the last component — after it's done and both green, the checklist is complete.
 
 ## Testing gotchas to remember
 - A plain field mutation on a TestBed-created component's own instance (e.g.
@@ -282,6 +298,6 @@ reserved).
   turn out to matter — that would need the secondary-entry-point approach instead.
 
 ## Known issues
-- None. `npm install`, `npx jest` (145 tests across
-  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip/dropdown/modal/card/badge/avatar/pagination/table),
+- None. `npm install`, `npx jest` (150 tests across
+  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip/dropdown/modal/card/badge/avatar/pagination/table/spinner),
   and `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`) are all green as of this update.
