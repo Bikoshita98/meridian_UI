@@ -19,5 +19,6 @@ export * from './lib/select/public-api';
 export * from './lib/spinner/public-api';
 export * from './lib/table/public-api';
 export * from './lib/tabs/public-api';
+export * from './lib/toast/public-api';
 export * from './lib/toggle/public-api';
 export * from './lib/tooltip/public-api';

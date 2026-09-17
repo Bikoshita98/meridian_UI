@@ -1,0 +1,7 @@
+<div [class]="toastClass()" [attr.role]="role()" [attr.aria-live]="role() === 'alert' ? 'assertive' : 'polite'">
+  <mr-icon [name]="iconName()" size="sm" [class]="iconClass()" />
+  <span [class]="messageClass">{{ toast.message }}</span>
+  <button type="button" [class]="closeButtonClass" aria-label="Dismiss" (click)="dismiss()">
+    <mr-icon name="x" size="sm" />
+  </button>
+</div>

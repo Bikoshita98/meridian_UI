@@ -1,0 +1,7 @@
+<ng-template #containerTemplate>
+  <div [class]="listClass">
+    @for (toast of toastService.toasts(); track toast.id) {
+      <mr-toast [toast]="toast" (dismissed)="dismiss(toast.id)" />
+    }
+  </div>
+</ng-template>

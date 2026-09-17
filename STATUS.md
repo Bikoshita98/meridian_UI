@@ -1,9 +1,9 @@
 # Build Status
-Last updated: 2026-09-17T16:45:00Z, after: spinner component built (`MrSpinner`: the loading ring
-`button` already renders inline, pulled out standalone; `SpinnerSize` maps to `icon`'s own
-`ICON_SIZE_PX` pixel scale rather than `button`'s `h-*` classes; added a `SpinnerColor` axis since
-this component library has no host-class-forwarding mechanism a consumer could otherwise use to
-recolor it), full toolchain validated (jest, ng-packagr build all green). Only `toast` remains.
+Last updated: 2026-09-17T17:42:00Z, after: toast component built (`MrToastService` + a mounted
+`MrToastContainer` built on CDK Overlay's imperative API, same as `modal`, rendering a queue of
+`MrToast` cards with per-toast `setTimeout` auto-dismiss) — **all 18 public components are now
+built**, plus the internal `label` helper. Full toolchain validated (jest, ng-packagr build all
+green). See "Next step" below for what's left before this is genuinely done, not just checked off.
 
 ## Component checklist
 - [x] icon — done (MrIcon wraps @ng-icons/core + @ng-icons/lucide; tests pass)
@@ -142,7 +142,28 @@ recolor it), full toolchain validated (jest, ng-packagr build all green). Only `
       since padding density and control height aren't the same axis (same reasoning `card` used for
       its own `CardPadding` scale). Empty state (`emptyMessage`, default "No data available") shown
       as a single row spanning every column via `colspan`. Tests pass)
-- [ ] toast — not started (build this next)
+- [x] toast — done (last of the 18. Triggered imperatively, not placed in a template like every
+      other component, so the architecture is a service + a mounted container rather than a single
+      `@Component`: `MrToastService` (`providedIn: 'root'`, a signal-backed queue, `show(message,
+      options)`/`dismiss(id)`/`clear()`) plus `MrToastContainer` (mount once, e.g. at the app root)
+      that renders whatever the service queues via one `MrToast` per entry. `MrToastContainer` uses
+      CDK Overlay's imperative API, same as `modal` — not for a backdrop or connected positioning
+      (a toast needs neither), but so it shares the same overlay stacking layer and reliably
+      renders above a `modal`/`dropdown`/`select` panel instead of under one; global position
+      strategy anchored to the top-right corner (`.top('16px').right('16px')`, matching the `lg`
+      spacing token's px value — CDK's position API takes a raw CSS length, it can't reference a
+      Tailwind token by name). `ToastStatus` (`info`/`success`/`warning`/`error`, not the full
+      7-color semantic palette — a toast's whole purpose is communicating one of these four kinds
+      of outcome) maps to `MERIDIAN_ICONS`' existing `info`/`check`/`alertTriangle`/`alertCircle` —
+      no new icons needed. Each `MrToast` owns its own `setTimeout`-based auto-dismiss (default
+      5000ms via `ToastOptions.duration`, `0` means persistent-until-manually-dismissed), cleared
+      in `ngOnDestroy`; no hover-to-pause — cut for v1, nobody asked for it. `role="alert"` +
+      `aria-live="assertive"` for an error toast, `role="status"` + `aria-live="polite"` for the
+      other three. No `success()`/`error()`/... convenience sugar methods on the service — just the
+      one `show(message, options)` entry point, consistent with this build's running preference for
+      cutting anything not explicitly asked for. Tests pass, including a container test verifying
+      it renders above/independent of other overlay-based components and one confirming
+      auto-dismiss timing via `jest.useFakeTimers()`, same pattern as `tooltip`)
 - [x] spinner — done (MrSpinner: single `<span role="status" [attr.aria-label]="label">`, the same
       `animate-spin` + current-color ring markup `button` already renders for its own loading
       state, pulled out standalone so it can sit anywhere (a loading placeholder over a `card`/
@@ -163,28 +184,16 @@ recolor it), full toolchain validated (jest, ng-packagr build all green). Only `
       Decisions)
 
 ## Next step
-Build `toast` at `meridian-ui/src/lib/toast/` — the last of the 18. This is a bigger shape question
-than any component built so far: decide the architecture *before* writing code. A per-instance
-`<mr-toast>` a consumer places manually (like every other component) doesn't fit how toasts
-actually get used — they need to be triggered imperatively from anywhere in an app (a click
-handler, an HTTP error interceptor, etc.), not sit in a template waiting to be shown. The likely
-shape: an injectable `MrToastService` with a `show(message, options)`-style API that pushes onto an
-internal signal-backed queue, plus an `<mr-toast-container>` component a consumer mounts once near
-the app root (or at least once per overlay context) that reads that queue and renders/positions the
-actual toast elements — probably via CDK Overlay again, like `modal`'s imperative `Overlay` API
-(global position, but anchored to a corner via `.position().global().top()/.bottom()/.left()/
-.right()` instead of centered). Each toast needs its own timed auto-dismiss (`setTimeout`, same
-non-RxJS precedent as `tooltip`'s `showDelay`/`hideDelay`) with likely a hover-to-pause affordance,
-plus a manual dismiss control (reuse `MrIcon`'s `x` icon, already in `MERIDIAN_ICONS`). Think a
-`ToastVariant`/`status` axis (success/warning/error/info, matching the semantic palette every other
-component redeclares) since a toast's whole purpose is usually to communicate a status. `role="status"`
-or `role="alert"` (`alert` for anything error-like, interrupts immediately; `status` for anything
-else, polite) on each toast — same reasoning as `spinner`'s `role="status"`, but toast messages
-*do* have visible text so no separate `aria-label` is needed here, unlike `spinner`. Run `npx jest`
-**and** `npx ng-packagr -p ng-package.json` after — see the ng-packagr gotchas below, jest alone is
-not sufficient (a CDK-Overlay-based component especially needs the `OverlayContainer` test-cleanup
-gotcha below). Add the export to `meridian-ui/src/index.ts` (tsconfig/jest path mapping already
-reserved). This is the last component — after it's done and both green, the checklist is complete.
+None — the build is complete. Checking BUILD_PROMPT.md's own "Deliverable" section item by item:
+a working `meridian-ui/` folder that installs (`npm install` green) ✓, builds via `ng-packagr` ✓,
+passes `jest` (168 tests) ✓, all 18 components implemented per the architecture pattern ✓, tokens
+fully wired in `tailwind.config.js` ✓, `CONVENTIONS.md` present ✓. BUILD_PROMPT.md's own "What NOT
+to build" section explicitly excludes Storybook/a docs app/a token-to-CSS-variable bridge from this
+pass, so there is no further mandated work. If a new session picks this up: there's no outstanding
+task to resume — treat any next request as new scope (a consuming demo app, visual QA in a real
+browser — everything so far has only been verified via jest + strict-template compilation, never
+actually rendered — Storybook, publishing to a registry, etc.) rather than a continuation of this
+checklist, and check with the user before assuming which one they want.
 
 ## Testing gotchas to remember
 - A plain field mutation on a TestBed-created component's own instance (e.g.
@@ -296,8 +305,19 @@ reserved). This is the last component — after it's done and both green, the ch
   requested explicitly and adds meaningful build complexity for 18 components. Flagging this in
   case real per-subpath *published* imports (post `ng-packagr build`, not just within this repo)
   turn out to matter — that would need the secondary-entry-point approach instead.
+- `toast` is a service (`MrToastService`) + a mounted container (`MrToastContainer`) rather than a
+  single `@Component` a consumer places in a template, unlike every other component in this
+  library. This is a deliberate deviation, not an inconsistency: a toast is triggered imperatively
+  from arbitrary application code (a click handler, an HTTP interceptor), which a template-placed
+  component fundamentally can't support — there's no "where" to put it ahead of time. `MrToast`
+  (the per-entry card) still exists as an ordinary `@Component` and is still exported, in case a
+  consumer wants to render one directly without going through the service.
 
 ## Known issues
-- None. `npm install`, `npx jest` (150 tests across
-  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip/dropdown/modal/card/badge/avatar/pagination/table/spinner),
+- None. `npm install`, `npx jest` (168 tests across
+  icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip/dropdown/modal/card/badge/avatar/pagination/table/spinner/toast),
   and `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`) are all green as of this update.
+- Nothing has ever been visually verified in an actual browser — every component's correctness so
+  far rests entirely on jest (jsdom) + `ng-packagr`'s strict-template AOT compile. Both are real
+  signal but neither renders a real layout; genuine visual/interaction QA (hover states, overlay
+  positioning, focus rings, animation) has not been done and isn't covered by "tests pass" above.
