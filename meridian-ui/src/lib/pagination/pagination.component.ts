@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
-import { MrIcon } from '../icon/public-api';
+import { MrIcon } from '@meridian/ui/icon';
 import { PaginationSize } from './pagination.enums';
 import { paginationButtonVariants, paginationEllipsisVariants, paginationNavVariants } from './pagination.variants';
 

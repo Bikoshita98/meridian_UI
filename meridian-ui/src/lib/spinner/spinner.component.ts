@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input, computed, signal } from '@angular/core';
-import { ICON_SIZE_PX } from '../icon/public-api';
+import { ICON_SIZE_PX } from '@meridian/ui/icon';
 import { SpinnerColor, SpinnerSize } from './spinner.enums';
 import { spinnerVariants } from './spinner.variants';
 

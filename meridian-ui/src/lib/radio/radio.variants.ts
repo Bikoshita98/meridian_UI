@@ -1,4 +1,4 @@
-import { tv } from '../shared/tv';
+import { tv } from 'tailwind-variants';
 import { RadioSize, RadioStatus } from './radio.enums';
 
 export const radioBoxVariants = tv({

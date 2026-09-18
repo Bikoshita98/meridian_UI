@@ -1,4 +1,4 @@
-import { tv } from '../shared/tv';
+import { tv } from 'tailwind-variants';
 import { LabelSize } from './label.enums';
 
 export const labelVariants = tv({

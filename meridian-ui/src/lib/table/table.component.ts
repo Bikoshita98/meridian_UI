@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
-import { MrIcon } from '../icon/public-api';
+import { MrIcon } from '@meridian/ui/icon';
 import { TableAlign, TableColumn, TableSize, TableSortDirection, TableSortEvent } from './table.enums';
 import {
   tableBodyRowVariants,

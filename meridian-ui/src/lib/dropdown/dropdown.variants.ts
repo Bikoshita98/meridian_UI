@@ -1,5 +1,5 @@
 import type { ConnectedPosition } from '@angular/cdk/overlay';
-import { tv } from '../shared/tv';
+import { tv } from 'tailwind-variants';
 import { DropdownPosition } from './dropdown.enums';
 
 export const dropdownPanelVariants = tv({

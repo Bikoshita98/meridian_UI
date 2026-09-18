@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, Input, computed, forwardRef, signal } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { coerceBooleanProperty } from '@angular/cdk/coercion';
-import { MrIcon } from '../icon/public-api';
+import { MrIcon } from '@meridian/ui/icon';
 import { CheckboxSize, CheckboxStatus } from './checkbox.enums';
 import { CHECKBOX_ICON_SIZE, checkboxBoxVariants } from './checkbox.variants';
 

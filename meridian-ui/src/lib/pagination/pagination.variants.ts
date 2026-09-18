@@ -1,4 +1,4 @@
-import { tv } from '../shared/tv';
+import { tv } from 'tailwind-variants';
 
 export const paginationNavVariants = tv({
   base: 'inline-flex items-center gap-2xs',

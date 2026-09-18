@@ -1,4 +1,4 @@
-import { tv } from '../shared/tv';
+import { tv } from 'tailwind-variants';
 import { SelectSize, SelectStatus } from './select.enums';
 
 export const selectTriggerVariants = tv({

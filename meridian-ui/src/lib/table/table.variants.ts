@@ -1,4 +1,4 @@
-import { tv } from '../shared/tv';
+import { tv } from 'tailwind-variants';
 
 export const tableWrapperVariants = tv({
   base: 'w-full overflow-x-auto rounded-lg border border-neutral-200',

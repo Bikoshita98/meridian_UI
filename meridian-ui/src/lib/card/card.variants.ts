@@ -1,4 +1,4 @@
-import { tv } from '../shared/tv';
+import { tv } from 'tailwind-variants';
 
 export const cardVariants = tv({
   base: 'rounded-lg bg-white',

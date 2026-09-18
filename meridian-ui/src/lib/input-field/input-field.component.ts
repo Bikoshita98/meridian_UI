@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, Input, computed, forwardRef, signal } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { coerceBooleanProperty } from '@angular/cdk/coercion';
-import { MrLabel } from '../label/public-api';
+import { MrLabel } from '@meridian/ui/label';
 import { InputFieldSize, InputFieldStatus } from './input-field.enums';
 import { inputFieldHelperVariants, inputFieldVariants } from './input-field.variants';
 

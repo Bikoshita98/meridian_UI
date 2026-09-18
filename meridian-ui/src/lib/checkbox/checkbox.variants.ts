@@ -1,5 +1,5 @@
-import { tv } from '../shared/tv';
-import type { IconSize } from '../icon/icon.enums';
+import { tv } from 'tailwind-variants';
+import type { IconSize } from '@meridian/ui/icon';
 import { CheckboxSize, CheckboxStatus } from './checkbox.enums';
 
 export const checkboxBoxVariants = tv({

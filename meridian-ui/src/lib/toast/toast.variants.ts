@@ -1,4 +1,4 @@
-import { tv } from '../shared/tv';
+import { tv } from 'tailwind-variants';
 
 export const toastVariants = tv({
   base: 'pointer-events-auto flex w-80 items-start gap-xs rounded-lg border bg-white p-md shadow-lg',

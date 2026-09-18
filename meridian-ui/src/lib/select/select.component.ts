@@ -11,8 +11,8 @@ import {
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { coerceBooleanProperty } from '@angular/cdk/coercion';
 import { OverlayModule } from '@angular/cdk/overlay';
-import { MrIcon } from '../icon/public-api';
-import { MrLabel } from '../label/public-api';
+import { MrIcon } from '@meridian/ui/icon';
+import { MrLabel } from '@meridian/ui/label';
 import { SelectOption, SelectSize, SelectStatus } from './select.enums';
 import {
   selectHelperVariants,

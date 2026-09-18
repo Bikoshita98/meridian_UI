@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
-import { MrIcon } from '../icon/public-api';
-import type { MrIconName } from '../icon/public-api';
+import { MrIcon } from '@meridian/ui/icon';
+import type { MrIconName } from '@meridian/ui/icon';
 import { ToastRef, ToastStatus } from './toast.enums';
 import { toastCloseButtonVariants, toastIconVariants, toastMessageVariants, toastVariants } from './toast.variants';
 

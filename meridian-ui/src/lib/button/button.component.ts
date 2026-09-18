@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, Input, computed, contentChildren, effect, signal } from '@angular/core';
 import { coerceBooleanProperty } from '@angular/cdk/coercion';
-import { ICON_SIZE_PX, MrIcon } from '../icon/public-api';
+import { ICON_SIZE_PX, MrIcon } from '@meridian/ui/icon';
 import { ButtonColor, ButtonRadius, ButtonShape, ButtonSize, ButtonStatus, ButtonVariant } from './button.enums';
 import { buttonVariants } from './button.variants';
 
