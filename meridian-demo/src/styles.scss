@@ -1,0 +1,29 @@
+// Mirrors meridian-ui/src/styles.scss (the library's own global stylesheet a real consumer would
+// `@import '@meridian/ui/styles.scss'`) — duplicated locally rather than cross-package-imported so
+// this app's sass compiler doesn't have to resolve a relative path into a sibling package.
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+// CDK Overlay: required by modal, dropdown, select and tooltip, all built on Angular CDK Overlay.
+@import '@angular/cdk/overlay-prebuilt.css';
+
+@layer base {
+  * {
+    @apply transition-colors duration-150 ease-in-out;
+  }
+
+  body {
+    @apply font-sans text-base text-neutral-600 bg-white;
+  }
+
+  a {
+    @apply text-primary-500;
+
+    &:hover {
+      @apply text-primary-600;
+    }
+  }
+}

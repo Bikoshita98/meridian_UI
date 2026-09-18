@@ -38,7 +38,11 @@ module.exports = plugin(function ({ addUtilities, theme }) {
   const emit = (className, { size, weight, family }) => {
     const [fontSize, opts] = resolveFontSize(size);
     utilities[`.${className}`] = {
-      fontFamily: theme(`fontFamily.${family}`).join(', '),
+      // Tailwind's `theme()` already returns fontFamily paths as a ready CSS value (it supports a
+      // `[fontFamily, { fontFeatureSettings, ... }]` tuple form and normalizes for callers), not
+      // the raw config array — joining it again used to throw here the moment this plugin actually
+      // ran through a real Tailwind build (never exercised until a consuming app built one).
+      fontFamily: theme(`fontFamily.${family}`),
       fontSize,
       fontWeight: weight,
       lineHeight: opts.lineHeight ?? '1.5',

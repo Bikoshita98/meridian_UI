@@ -1,4 +1,4 @@
-import { tv } from 'tailwind-variants';
+import { tv } from '../shared/tv';
 import { TabsSize } from './tabs.enums';
 
 export const tabsListVariants = tv({

@@ -1,4 +1,4 @@
-import { tv } from 'tailwind-variants';
+import { tv } from '../shared/tv';
 import { BadgeColor, BadgeVariant } from './badge.enums';
 
 // Every class below is written out literally (never interpolated) so Tailwind's static content

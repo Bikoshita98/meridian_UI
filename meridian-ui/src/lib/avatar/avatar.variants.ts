@@ -1,4 +1,4 @@
-import { tv } from 'tailwind-variants';
+import { tv } from '../shared/tv';
 
 export const avatarVariants = tv({
   base: 'inline-flex select-none items-center justify-center overflow-hidden bg-neutral-100 font-sans font-medium leading-none text-neutral-600',

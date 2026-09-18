@@ -1,4 +1,4 @@
-import { tv } from 'tailwind-variants';
+import { tv } from '../shared/tv';
 import { InputFieldSize, InputFieldStatus } from './input-field.enums';
 
 export const inputFieldVariants = tv({

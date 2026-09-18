@@ -1,4 +1,4 @@
-import { tv } from 'tailwind-variants';
+import { tv } from '../shared/tv';
 import { IconSize } from './icon.enums';
 
 export const iconVariants = tv({

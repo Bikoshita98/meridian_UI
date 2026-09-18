@@ -1,4 +1,4 @@
-import { tv } from 'tailwind-variants';
+import { tv } from '../shared/tv';
 import { ToggleSize, ToggleStatus } from './toggle.enums';
 
 export const toggleTrackVariants = tv({

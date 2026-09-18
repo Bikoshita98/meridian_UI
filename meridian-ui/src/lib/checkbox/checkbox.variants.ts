@@ -1,4 +1,4 @@
-import { tv } from 'tailwind-variants';
+import { tv } from '../shared/tv';
 import type { IconSize } from '../icon/icon.enums';
 import { CheckboxSize, CheckboxStatus } from './checkbox.enums';
 

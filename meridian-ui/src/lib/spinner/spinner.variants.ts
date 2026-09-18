@@ -1,4 +1,4 @@
-import { tv } from 'tailwind-variants';
+import { tv } from '../shared/tv';
 
 // Same ring markup `button` renders inline for its own loading state (`animate-spin` + a
 // current-color border with the top edge cut out), pulled out standalone so it can be placed

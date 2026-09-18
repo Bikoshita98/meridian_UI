@@ -1,4 +1,4 @@
-import { tv } from 'tailwind-variants';
+import { tv } from '../shared/tv';
 
 export const modalPanelVariants = tv({
   base: 'w-full rounded-lg bg-white p-lg shadow-2xl outline-none',
