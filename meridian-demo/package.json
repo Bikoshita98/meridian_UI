@@ -18,6 +18,7 @@
     "@angular/forms": "^22.1.7",
     "@angular/platform-browser": "^22.0.0",
     "@angular/router": "^22.0.0",
+    "@meridian/ui": "file:../dist/meridian-ui",
     "@ng-icons/core": "^36.0.0",
     "@ng-icons/lucide": "^36.0.0",
     "rxjs": "~7.8.0",

@@ -1,5 +1,41 @@
 # Build Status
-Last updated: 2026-09-18T14:55:00Z, after: gave `meridian-ui` real `ng-packagr` secondary entry
+Last updated: 2026-09-18T15:15:00Z, after: re-pointed `meridian-demo` at the real, built
+`dist/meridian-ui` package instead of consuming `meridian-ui` from source — the last loose end the
+previous update's "Next step" flagged. `meridian-ui` was rebuilt (`npx ng-packagr`, 19 secondary
+entry points + primary, all green) and installed into `meridian-demo` as an actual npm dependency:
+`npm install ../dist/meridian-ui --install-links` (`--install-links` forces a real file copy into
+`node_modules/@meridian/ui` instead of npm's default symlink — a symlink would resolve Angular's
+peer-dependency lookups from `dist/`'s real on-disk location upward, which has no `node_modules` of
+its own, rather than from `meridian-demo/node_modules` where `@angular/core` etc. actually live).
+Recorded in `package.json` as `"@meridian/ui": "file:../dist/meridian-ui"`.
+
+Two follow-on changes, both required, neither a bug: removed `meridian-demo/tsconfig.json`'s
+`@meridian/ui/*` `paths` mapping entirely (no longer needed or wanted — the whole point was to stop
+resolving through a source alias and let real `node_modules`/`exports`-map resolution do the work;
+`app.ts`/`app.html` needed **zero** changes, since they already only ever imported through the bare
+`@meridian/ui/<component>` specifier, never a relative path into `meridian-ui/src`). And repointed
+`meridian-demo/tailwind.config.js`'s `content` glob from `../meridian-ui/src/**/*.{html,ts}` to
+`./node_modules/@meridian/ui/fesm2022/*.mjs` — confirmed first that Angular's AOT partial-compilation
+output still embeds each component's literal template HTML and `tv()` class strings as plain string
+literals (`grep border-md .../meridian-ui-spinner.mjs` still matched), so Tailwind's content scanner
+finds them there exactly as it would in source. `meridian-demo/tailwind.config.js` still `require()`s
+`meridian-ui/tailwind.config.js` directly for the actual token *definitions* (colors/spacing/etc.) —
+that part is unavoidably source-repo-adjacent, since `tailwind.config.js` is a dev/build-time file
+ng-packagr doesn't publish into `dist/`, and BUILD_PROMPT.md's own "What NOT to build" section
+explicitly excludes building a token-to-CSS-variable bridge that would let a truly external consumer
+avoid that. Fixed the demo's own header copy, which still said "consumed from source."
+
+Re-verified end to end, not just "still builds": `npx ng build --configuration development` (green,
+and the bundle got *smaller* — 1.91MB vs. the old 3.07MB, since it now imports pre-optimized fesm
+bundles instead of recompiling raw TS on every build), `npx ng build` production (green, and now
+*under* budget — 430.81kB vs. the 500kB limit, resolving the previous update's budget-overage note
+without touching `angular.json`), `npx ng test` (2/2), and a full Playwright pass against the served
+app — full-page screenshot pixel-equivalent to the source-consuming version (including the fixed
+spinner ring), zero console errors, dropdown/modal/toast interactions all still work. `meridian-ui`
+itself is untouched by this update (still 168/168 jest, still a clean 19-entry-point `ng-packagr`
+build) — this was entirely about how `meridian-demo` consumes it.
+
+Previous update, after: gave `meridian-ui` real `ng-packagr` secondary entry
 points, so `import { MrButton } from '@meridian/ui/button'` now resolves against the **published**
 package (`dist/meridian-ui/button/...`, via a real `exports` map entry), not just against source
 through `meridian-demo`'s tsconfig `paths` — closing the gap the previous update's "Known issues"
@@ -260,22 +296,22 @@ worth doing from here.
 ## Next step
 None mandated — `meridian-ui/`'s own BUILD_PROMPT.md deliverable is still complete (see the
 component checklist), and everything since (the `meridian-demo/` app, the two bug fixes, real
-secondary entry points) was user-directed new scope, not part of that checklist. If a new session
-picks this up: there's no outstanding task to resume. Two loose ends worth knowing about, neither
-mandated:
-- `meridian-demo/` still consumes `meridian-ui` from source, not from the now-real
-  `dist/meridian-ui` per-component build — re-pointing it at the built package (and adding it as an
-  actual installed/linked dependency instead of a tsconfig path hack) would be the natural next
-  proof that the two consumption paths behave identically, but wasn't done as part of the
-  secondary-entry-points work.
-- `meridian-demo` is a real, working showcase but was built in one pass for visual QA, not hardened
-  as a deliverable in its own right — it has no tests beyond the CLI-scaffolded smoke spec, and its
-  default `ng build` (production configuration) exceeds the CLI-inherited 500kB initial bundle
-  budget by ~35kB (a warning, not a build failure; only ever explicitly built with `--configuration
-  development` otherwise).
+secondary entry points, and now re-pointing the demo at the real built package) was user-directed
+new scope, not part of that checklist. If a new session picks this up: there's no outstanding task
+to resume. Both loose ends the previous update flagged are now resolved: `meridian-demo` installs
+the real `dist/meridian-ui` build as an npm dependency (`file:../dist/meridian-ui`, via
+`--install-links` so it's a real copy, not a symlink) rather than aliasing into source, and its
+production bundle is now *under* the CLI's inherited budget (430.81kB vs. 500kB) as a side effect of
+consuming pre-optimized fesm bundles instead of recompiling raw TS — no separate fix needed. One
+new, smaller thing worth knowing: `meridian-demo`'s `@meridian/ui` dependency is a `file:` reference
+to `../dist/meridian-ui`, which is gitignored (build output, not source) — a fresh clone needs
+`meridian-ui` built (`npx ng-packagr -p ng-package.json` from `meridian-ui/`) *before*
+`npm install` in `meridian-demo/` will succeed; `meridian-demo` still has no tests beyond the
+CLI-scaffolded smoke spec.
 
-Treat any next request (either of the above, wiring either project into CI, Storybook, publishing
-to a real registry, etc.) as new scope and check with the user before assuming which one they want.
+Treat any next request (build ordering/CI for the two-project dependency, more demo tests,
+Storybook, publishing to a real registry, etc.) as new scope and check with the user before assuming
+which one they want.
 
 ## Testing gotchas to remember
 - A plain field mutation on a TestBed-created component's own instance (e.g.
@@ -365,18 +401,28 @@ to a real registry, etc.) as new scope and check with the user before assuming w
   redeclaring `ButtonColor`'s palette as its own `BadgeColor`).
 - `meridian-demo/` (separate top-level Angular CLI 22 app, own `package.json`/`node_modules`/
   `angular.json`, a sibling of `meridian-ui/`, not nested inside it and not an Nx/npm-workspace
-  monorepo — consistent with "no monorepo tooling in this repo" below) still consumes `meridian-ui`
-  **from source** via `meridian-demo/tsconfig.json`'s own `@meridian/ui/<component>` → `../
-  meridian-ui/src/lib/.../public-api.ts` path mapping, unaffected by the secondary-entry-points
-  work above — it was never blocked on that, just built before the published package could satisfy
-  the same import style. Re-pointing it at the real `dist/meridian-ui` build (proving the two
-  consumption paths produce identical behavior) is possible future work, not done as part of this
-  update. `meridian-demo/tailwind.config.js` `require()`s `meridian-ui`'s own `tailwind.config.js`
-  and re-spreads it (rather than duplicating the token definitions) so both apps render against
-  identical design tokens, with `content` extended to also scan `meridian-ui/src` (Tailwind needs
-  to see those component/variants files directly, since nothing pre-built is being consumed).
-  `meridian-demo/src/styles.scss` duplicates (doesn't `@import` cross-package) `meridian-ui/src/
-  styles.scss`'s content, to avoid a sass cross-package relative-import path.
+  monorepo — consistent with "no monorepo tooling in this repo" below) now consumes the real
+  **built** `dist/meridian-ui` package as an actual npm dependency (`"@meridian/ui": "file:../dist/
+  meridian-ui"`, installed with `--install-links` so it's a real file copy in `node_modules`, not a
+  symlink — a symlink would make Angular's peer-dependency resolution look for `@angular/core` etc.
+  starting from `dist/`'s real on-disk location upward, which has no `node_modules` of its own,
+  instead of from `meridian-demo/node_modules` where they actually live). This supersedes an earlier
+  from-source setup (tsconfig `@meridian/ui/<component>` → `../meridian-ui/src/lib/.../public-api.ts`
+  path mapping), built before the secondary-entry-points work above existed for the published
+  package to satisfy the same import style — `app.ts`/`app.html` needed zero changes for the switch,
+  since they always imported through the bare `@meridian/ui/<component>` specifier, never a relative
+  source path. One consequence: `meridian-ui` must be built (`npx ng-packagr -p ng-package.json`)
+  *before* `npm install` in `meridian-demo/` can succeed, since `dist/` is gitignored build output,
+  not source. `meridian-demo/tailwind.config.js` still `require()`s `meridian-ui`'s own
+  `tailwind.config.js` directly for the token *definitions* (colors/spacing/etc. — a dev-time file,
+  not published into `dist/`, so this one piece is still source-repo-adjacent; see BUILD_PROMPT.md's
+  "What NOT to build" exclusion of a token-to-CSS-variable bridge), but `content` now scans the
+  *installed* package's compiled output (`node_modules/@meridian/ui/fesm2022/*.mjs`) instead of
+  `meridian-ui/src` — confirmed Angular's AOT partial-compilation output still embeds each
+  component's literal template HTML and `tv()` class strings as plain string literals, so Tailwind's
+  content scanner finds them there exactly as it would in source. `meridian-demo/src/styles.scss`
+  still duplicates (doesn't `@import` cross-package) `meridian-ui/src/styles.scss`'s content, to
+  avoid a sass cross-package relative-import path — unrelated to and unaffected by this change.
 - No monorepo tooling exists in this repo (empty directory to start), so per the prompt's own
   fallback the library lives at top-level `meridian-ui/` rather than `libs/meridian-ui/`. All
   paths in `CLAUDE.md` and this file are adjusted accordingly (`meridian-ui/docs/BUILD_PROMPT.md`,
@@ -441,14 +487,15 @@ to a real registry, etc.) as new scope and check with the user before assuming w
   icon/button/label/input-field/select/checkbox/radio/toggle/tabs/tooltip/dropdown/modal/card/badge/avatar/pagination/table/spinner/toast),
   and `npx ng-packagr -p ng-package.json` (run from `meridian-ui/`, now producing 19 real secondary
   entry points plus the primary — see the Decisions entry below) are all green as of this update,
-  the library has actually been rendered in a real browser (via `meridian-demo/`, still source-
-  consuming) with no visual or console-error regressions found beyond the two already fixed in the
-  previous update, and a standalone Node resolution smoke test confirmed the *published* package's
-  per-component sub-paths (`@meridian/ui/button`, `.../icon`, `.../select`, `.../table`, `.../toast`,
-  `.../label`) resolve correctly via its generated `exports` map — CONVENTIONS.md's "always import
-  from a component's own sub-path" rule is now actually satisfiable by a real external consumer, not
+  the library has actually been rendered in a real browser (via `meridian-demo/`, which now installs
+  and renders against the real *built* `dist/meridian-ui` package, not source) with no visual or
+  console-error regressions found beyond the two already fixed two updates ago, and a standalone
+  Node resolution smoke test confirmed the *published* package's per-component sub-paths
+  (`@meridian/ui/button`, `.../icon`, `.../select`, `.../table`, `.../toast`, `.../label`) resolve
+  correctly via its generated `exports` map — CONVENTIONS.md's "always import from a component's own
+  sub-path" rule is now satisfiable by, and actually exercised by, a real installed consumer, not
   just an in-repo one resolving through tsconfig `paths`. (Previously flagged here as a known gap;
-  resolved this update, not just restated.)
+  resolved two updates ago, and now the demo app itself proves it rather than just a smoke test.)
 - Tailwind's PostCSS pipeline had never been run end-to-end before this update (see the plugins.js
   and tailwind-merge fixes above) — worth remembering that "jest passes" and "ng-packagr builds"
   are still not proof a component's *actual CSS* is correct; only a real Tailwind build + browser

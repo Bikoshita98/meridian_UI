@@ -3,32 +3,9 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
-    // TS 6's `moduleResolution: "bundler"` deprecates `baseUrl`, but per-component sub-path
-    // imports (`@meridian/ui/button`, consumed from source here) need `paths`, which still
-    // requires it.
-    "ignoreDeprecations": "6.0",
-    "baseUrl": ".",
-    "paths": {
-      "@meridian/ui/avatar": ["../meridian-ui/src/lib/avatar/public-api.ts"],
-      "@meridian/ui/badge": ["../meridian-ui/src/lib/badge/public-api.ts"],
-      "@meridian/ui/button": ["../meridian-ui/src/lib/button/public-api.ts"],
-      "@meridian/ui/card": ["../meridian-ui/src/lib/card/public-api.ts"],
-      "@meridian/ui/checkbox": ["../meridian-ui/src/lib/checkbox/public-api.ts"],
-      "@meridian/ui/dropdown": ["../meridian-ui/src/lib/dropdown/public-api.ts"],
-      "@meridian/ui/icon": ["../meridian-ui/src/lib/icon/public-api.ts"],
-      "@meridian/ui/input-field": ["../meridian-ui/src/lib/input-field/public-api.ts"],
-      "@meridian/ui/label": ["../meridian-ui/src/lib/label/public-api.ts"],
-      "@meridian/ui/modal": ["../meridian-ui/src/lib/modal/public-api.ts"],
-      "@meridian/ui/pagination": ["../meridian-ui/src/lib/pagination/public-api.ts"],
-      "@meridian/ui/radio": ["../meridian-ui/src/lib/radio/public-api.ts"],
-      "@meridian/ui/select": ["../meridian-ui/src/lib/select/public-api.ts"],
-      "@meridian/ui/spinner": ["../meridian-ui/src/lib/spinner/public-api.ts"],
-      "@meridian/ui/table": ["../meridian-ui/src/lib/table/public-api.ts"],
-      "@meridian/ui/tabs": ["../meridian-ui/src/lib/tabs/public-api.ts"],
-      "@meridian/ui/toast": ["../meridian-ui/src/lib/toast/public-api.ts"],
-      "@meridian/ui/toggle": ["../meridian-ui/src/lib/toggle/public-api.ts"],
-      "@meridian/ui/tooltip": ["../meridian-ui/src/lib/tooltip/public-api.ts"]
-    },
+    // No `@meridian/ui/*` path mapping — `@meridian/ui` is a real installed dependency now
+    // (`file:../dist/meridian-ui`, see package.json), resolved via its own package.json `exports`
+    // map like any other npm package, not aliased into meridian-ui's TypeScript source.
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,
