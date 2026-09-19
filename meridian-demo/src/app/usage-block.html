@@ -1,0 +1,50 @@
+<div class="flex flex-col gap-sm">
+  <p class="label-3 text-neutral-400">{{ name() }} — usage</p>
+  <mr-card variant="outlined" padding="lg">
+    <div class="flex flex-col gap-md">
+      <div class="flex items-center justify-between border-b border-neutral-100">
+        <div class="flex items-center gap-lg">
+          <button
+            type="button"
+            class="-mb-px label-3 border-b-md px-3xs pb-2xs"
+            [class]="
+              activeTab() === 'html'
+                ? 'border-primary-500 text-primary-500'
+                : 'border-transparent text-neutral-400 hover:text-neutral-500'
+            "
+            (click)="setTab('html')"
+          >
+            HTML
+          </button>
+          <button
+            type="button"
+            class="-mb-px label-3 border-b-md px-3xs pb-2xs"
+            [class]="
+              activeTab() === 'ts'
+                ? 'border-primary-500 text-primary-500'
+                : 'border-transparent text-neutral-400 hover:text-neutral-500'
+            "
+            (click)="setTab('ts')"
+          >
+            TS
+          </button>
+        </div>
+        <button
+          type="button"
+          class="-mb-px flex items-center gap-3xs pb-2xs text-sm text-neutral-400 hover:text-primary-500"
+          (click)="copyCode()"
+        >
+          @if (copied()) {
+            <mr-icon name="check" size="sm" />
+            <span>Copied</span>
+          } @else {
+            <span>Copy</span>
+          }
+        </button>
+      </div>
+      <pre
+        class="overflow-x-auto rounded-md bg-neutral-25 p-md text-sm text-neutral-600"
+      ><code>{{ activeTab() === 'html' ? html() : ts() }}</code></pre>
+    </div>
+  </mr-card>
+</div>

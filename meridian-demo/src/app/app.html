@@ -1,231 +1,417 @@
-<main class="mx-auto flex max-w-5xl flex-col gap-3xl px-2xl py-3xl">
-  <header class="flex flex-col gap-2xs">
-    <p class="label-3 text-primary-500">@meridian/ui</p>
-    <h1 class="heading-3">Component showcase</h1>
-    <p class="subheading-2 text-neutral-400">
-      A living demo of all 18 components, installed from the real built package
-      (<code>@meridian/ui</code>, via <code>npm</code>) exactly the way a real app would — one
-      <code>@meridian/ui/&lt;component&gt;</code> sub-path at a time.
-    </p>
+<div class="mx-auto flex max-w-6xl flex-col gap-3xl px-2xl py-3xl">
+  <header class="flex flex-col gap-xl border-b border-neutral-100 pb-2xl">
+    <div class="flex flex-col gap-2xs">
+      <p class="label-3 text-primary-500">@meridian/ui</p>
+      <h1 class="heading-3">Component showcase</h1>
+      <p class="subheading-2 max-w-3xl text-neutral-400">
+        A living demo of all 18 components, installed from the real built package
+        (<code>@meridian/ui</code>, via <code>npm</code>) exactly the way a real app would — one
+        <code>@meridian/ui/&lt;component&gt;</code> sub-path at a time. Pick a section from the list
+        on the left, or scroll — each card names what to click or type to see the component react.
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-sm">
+      <mr-badge color="primary" variant="outline">18 components</mr-badge>
+      <mr-badge color="info" variant="outline">Angular 22</mr-badge>
+      <mr-badge color="success" variant="outline">ng-packagr build</mr-badge>
+      <mr-badge color="warning" variant="outline">Tailwind design tokens</mr-badge>
+    </div>
   </header>
 
-  <!-- Button -->
-  <section class="flex flex-col gap-lg">
-    <h2 class="heading-6">Button</h2>
-    <mr-card padding="lg">
-      <div class="flex flex-wrap items-center gap-md">
-        <mr-button>Filled</mr-button>
-        <mr-button variant="outline">Outline</mr-button>
-        <mr-button variant="ghost">Ghost</mr-button>
-        <mr-button variant="link">Link</mr-button>
-        <mr-button color="success">Success</mr-button>
-        <mr-button color="error">Error</mr-button>
-        <mr-button status="loading">Loading</mr-button>
-        <mr-button [disabled]="true">Disabled</mr-button>
-        <mr-button shape="square" aria-label="Add">
-          <mr-icon name="plus" />
-        </mr-button>
-      </div>
-    </mr-card>
-  </section>
-
-  <!-- Icon -->
-  <section class="flex flex-col gap-lg">
-    <h2 class="heading-6">Icon</h2>
-    <mr-card padding="lg">
-      <div class="flex flex-wrap gap-xl">
-        @for (icon of iconGallery; track icon) {
-          <div class="flex flex-col items-center gap-2xs text-neutral-400">
-            <mr-icon [name]="icon" size="lg" />
-            <span class="label-3">{{ icon }}</span>
+  <div class="grid gap-3xl lg:grid-cols-[220px_1fr]">
+    <!-- On-page navigation, grouped the same way the sections below are. -->
+    <aside class="hidden lg:block">
+      <nav class="sticky top-2xl flex flex-col gap-xl">
+        @for (group of nav; track group.category) {
+          <div class="flex flex-col gap-2xs">
+            <p class="label-3 text-neutral-400">{{ group.category }}</p>
+            <ul class="flex flex-col gap-3xs">
+              @for (link of group.links; track link.id) {
+                <li>
+                  <a
+                    [href]="'#' + link.id"
+                    class="flex items-center gap-2xs rounded-md py-3xs pr-2xs text-sm transition-colors"
+                    [class]="
+                      activeSection() === link.id
+                        ? 'text-primary-500 font-medium'
+                        : 'text-neutral-500 hover:text-primary-600'
+                    "
+                  >
+                    <span
+                      class="h-lg w-3xs shrink-0 rounded-full transition-colors"
+                      [class]="activeSection() === link.id ? 'bg-primary-500' : 'bg-transparent'"
+                    ></span>
+                    {{ link.label }}
+                  </a>
+                </li>
+              }
+            </ul>
           </div>
         }
-      </div>
-    </mr-card>
-  </section>
+      </nav>
+    </aside>
 
-  <!-- Input field / select -->
-  <section class="flex flex-col gap-lg">
-    <h2 class="heading-6">Input field &amp; select</h2>
-    <mr-card padding="lg">
-      <div class="grid gap-lg sm:grid-cols-2">
-        <mr-input-field
-          label="Username"
-          placeholder="e.g. avery-chen"
-          helperText="Visible to other members of your workspace."
-          [(ngModel)]="username"
-        />
-        <mr-input-field
-          label="Email"
-          type="email"
-          status="error"
-          helperText="Enter a valid email address."
-        />
-        <mr-select label="Framework" [options]="frameworkOptions" [(ngModel)]="framework" />
-        <div class="flex flex-col justify-end gap-2xs">
-          <p class="label-3 text-neutral-400">Selected value</p>
-          <p class="label-2">{{ framework }}</p>
+    <div class="flex flex-col gap-3xl">
+      <!-- Button -->
+      <section id="button" class="flex scroll-mt-2xl flex-col gap-lg">
+        <div class="flex flex-col gap-3xs">
+          <p class="label-3 text-primary-500">Actions</p>
+          <h2 class="heading-6">Button</h2>
+          <p class="text-base text-neutral-400">
+            Try: click <strong>Loading</strong> and <strong>Disabled</strong> to see their states,
+            or the square icon button — variants, colors, and shapes are all independent inputs.
+          </p>
         </div>
-      </div>
-    </mr-card>
-  </section>
-
-  <!-- Checkbox / radio / toggle -->
-  <section class="flex flex-col gap-lg">
-    <h2 class="heading-6">Checkbox, radio &amp; toggle</h2>
-    <mr-card padding="lg">
-      <div class="grid gap-xl sm:grid-cols-3">
-        <div class="flex flex-col gap-md">
-          <mr-checkbox label="I accept the terms" [(ngModel)]="termsAccepted" />
-          <mr-checkbox label="Partially selected" [indeterminate]="true" />
-          <mr-checkbox label="Disabled" [disabled]="true" />
-        </div>
-        <div class="flex flex-col gap-md">
-          <mr-radio name="plan" label="Starter" value="starter" [(ngModel)]="plan" />
-          <mr-radio name="plan" label="Pro" value="pro" [(ngModel)]="plan" />
-          <mr-radio name="plan" label="Enterprise" value="enterprise" [(ngModel)]="plan" />
-        </div>
-        <div class="flex flex-col gap-md">
-          <mr-toggle label="Email notifications" [(ngModel)]="emailNotifications" />
-          <mr-toggle label="Disabled" [disabled]="true" />
-        </div>
-      </div>
-    </mr-card>
-  </section>
-
-  <!-- Tabs -->
-  <section class="flex flex-col gap-lg">
-    <h2 class="heading-6">Tabs</h2>
-    <mr-card padding="lg">
-      <mr-tabs [(selected)]="activeTab">
-        <mr-tab label="Overview">
-          <p class="text-base text-neutral-500">Everything looks good — no incidents this week.</p>
-        </mr-tab>
-        <mr-tab label="Activity">
-          <p class="text-base text-neutral-500">3 deploys, 12 commits since Monday.</p>
-        </mr-tab>
-        <mr-tab label="Disabled" [disabled]="true">
-          <p class="text-base text-neutral-500">Not reachable.</p>
-        </mr-tab>
-      </mr-tabs>
-    </mr-card>
-  </section>
-
-  <!-- Tooltip / dropdown / modal -->
-  <section class="flex flex-col gap-lg">
-    <h2 class="heading-6">Tooltip, dropdown &amp; modal</h2>
-    <mr-card padding="lg">
-      <div class="flex flex-wrap items-center gap-lg">
-        <mr-tooltip text="Copies the share link to your clipboard" position="top">
-          <mr-button variant="outline">Hover me</mr-button>
-        </mr-tooltip>
-
-        <mr-dropdown>
-          <mr-button variant="outline">
-            Actions
-            <mr-icon name="chevronDown" size="sm" />
-          </mr-button>
-          <mr-dropdown-item>Edit</mr-dropdown-item>
-          <mr-dropdown-item>Duplicate</mr-dropdown-item>
-          <mr-dropdown-item [disabled]="true">Delete</mr-dropdown-item>
-        </mr-dropdown>
-
-        <mr-button (click)="modalOpen = true">Open modal</mr-button>
-        <mr-modal [(open)]="modalOpen" size="sm">
-          <div class="flex flex-col gap-lg p-2xl">
-            <h3 class="heading-6">Delete project?</h3>
-            <p class="text-base text-neutral-500">This action can't be undone.</p>
-            <div class="flex justify-end gap-sm">
-              <mr-button variant="ghost" (click)="modalOpen = false">Cancel</mr-button>
-              <mr-button color="error" (click)="modalOpen = false">Delete</mr-button>
-            </div>
+        <mr-card padding="lg">
+          <div class="flex flex-wrap items-center gap-md">
+            <mr-button>Filled</mr-button>
+            <mr-button variant="outline">Outline</mr-button>
+            <mr-button variant="ghost">Ghost</mr-button>
+            <mr-button variant="link">Link</mr-button>
+            <mr-button color="success">Success</mr-button>
+            <mr-button color="error">Error</mr-button>
+            <mr-button status="loading">Loading</mr-button>
+            <mr-button [disabled]="true">Disabled</mr-button>
+            <mr-button shape="square" aria-label="Add">
+              <mr-icon name="plus" />
+            </mr-button>
           </div>
-        </mr-modal>
-      </div>
-    </mr-card>
-  </section>
+        </mr-card>
+        <app-usage-block
+          name="Button"
+          [html]="snippets['button'].html"
+          [ts]="snippets['button'].ts"
+        />
+      </section>
 
-  <!-- Card / badge / avatar -->
-  <section class="flex flex-col gap-lg">
-    <h2 class="heading-6">Card, badge &amp; avatar</h2>
-    <mr-card padding="lg">
-      <div class="flex flex-wrap items-center gap-xl">
-        <mr-card variant="outlined" padding="md">
-          <div class="flex items-center gap-md">
-            <mr-avatar name="Avery Chen" size="md" />
-            <div class="flex flex-col">
-              <span class="label-2">Avery Chen</span>
-              <span class="label-3 text-neutral-400">Engineering</span>
+      <!-- Icon -->
+      <section id="icon" class="flex scroll-mt-2xl flex-col gap-lg">
+        <div class="flex flex-col gap-3xs">
+          <p class="label-3 text-primary-500">Actions</p>
+          <h2 class="heading-6">Icon</h2>
+          <p class="text-base text-neutral-400">
+            Every icon below is a single <code>mr-icon</code> with a <code>name</code> input — the
+            label under each one is that exact name.
+          </p>
+        </div>
+        <mr-card padding="lg">
+          <div class="flex flex-wrap gap-xl">
+            @for (icon of iconGallery; track icon) {
+              <div class="flex flex-col items-center gap-2xs text-neutral-400">
+                <mr-icon [name]="icon" size="lg" />
+                <span class="label-3">{{ icon }}</span>
+              </div>
+            }
+          </div>
+        </mr-card>
+        <app-usage-block name="Icon" [html]="snippets['icon'].html" [ts]="snippets['icon'].ts" />
+      </section>
+
+      <!-- Input field / select -->
+      <section id="inputs" class="flex scroll-mt-2xl flex-col gap-lg">
+        <div class="flex flex-col gap-3xs">
+          <p class="label-3 text-primary-500">Form controls</p>
+          <h2 class="heading-6">Input field &amp; select</h2>
+          <p class="text-base text-neutral-400">
+            Try: type in <strong>Username</strong>, or open <strong>Framework</strong> — its
+            selected value updates live in the box on the right. The email field shows the
+            built-in error state.
+          </p>
+        </div>
+        <mr-card padding="lg">
+          <div class="grid gap-lg sm:grid-cols-2">
+            <mr-input-field
+              label="Username"
+              placeholder="e.g. avery-chen"
+              helperText="Visible to other members of your workspace."
+              [(ngModel)]="username"
+            />
+            <mr-input-field
+              label="Email"
+              type="email"
+              status="error"
+              helperText="Enter a valid email address."
+            />
+            <mr-select label="Framework" [options]="frameworkOptions" [(ngModel)]="framework" />
+            <div class="flex flex-col justify-end gap-2xs">
+              <p class="label-3 text-neutral-400">Selected value</p>
+              <p class="label-2">{{ framework }}</p>
             </div>
           </div>
         </mr-card>
-
-        <div class="flex flex-wrap gap-sm">
-          <mr-badge color="primary">Primary</mr-badge>
-          <mr-badge color="success" variant="outline">Success</mr-badge>
-          <mr-badge color="warning">Warning</mr-badge>
-          <mr-badge color="error" variant="outline">Error</mr-badge>
+        <div class="flex flex-col gap-lg">
+          <app-usage-block
+            name="Input field"
+            [html]="snippets['inputField'].html"
+            [ts]="snippets['inputField'].ts"
+          />
+          <app-usage-block name="Select" [html]="snippets['select'].html" [ts]="snippets['select'].ts" />
         </div>
+      </section>
 
-        <mr-avatar initials="JB" shape="square" size="lg" />
-        <mr-avatar src="https://i.pravatar.cc/64?img=12" alt="Random user" size="lg" />
-      </div>
-    </mr-card>
-  </section>
+      <!-- Checkbox / radio / toggle -->
+      <section id="selections" class="flex scroll-mt-2xl flex-col gap-lg">
+        <div class="flex flex-col gap-3xs">
+          <p class="label-3 text-primary-500">Form controls</p>
+          <h2 class="heading-6">Checkbox, radio &amp; toggle</h2>
+          <p class="text-base text-neutral-400">
+            Try: check the first checkbox, switch between plans (radios share one
+            <code>name</code>), or flip the notifications toggle. The "Disabled" and
+            "Partially selected" items don't respond by design.
+          </p>
+        </div>
+        <mr-card padding="lg">
+          <div class="grid gap-xl sm:grid-cols-3">
+            <div class="flex flex-col gap-md">
+              <mr-checkbox label="I accept the terms" [(ngModel)]="termsAccepted" />
+              <mr-checkbox label="Partially selected" [indeterminate]="true" />
+              <mr-checkbox label="Disabled" [disabled]="true" />
+            </div>
+            <div class="flex flex-col gap-md">
+              <mr-radio name="plan" label="Starter" value="starter" [(ngModel)]="plan" />
+              <mr-radio name="plan" label="Pro" value="pro" [(ngModel)]="plan" />
+              <mr-radio name="plan" label="Enterprise" value="enterprise" [(ngModel)]="plan" />
+            </div>
+            <div class="flex flex-col gap-md">
+              <mr-toggle label="Email notifications" [(ngModel)]="emailNotifications" />
+              <mr-toggle label="Disabled" [disabled]="true" />
+            </div>
+          </div>
+        </mr-card>
+        <div class="flex flex-col gap-lg">
+          <app-usage-block
+            name="Checkbox"
+            [html]="snippets['checkbox'].html"
+            [ts]="snippets['checkbox'].ts"
+          />
+          <app-usage-block name="Radio" [html]="snippets['radio'].html" [ts]="snippets['radio'].ts" />
+          <app-usage-block name="Toggle" [html]="snippets['toggle'].html" [ts]="snippets['toggle'].ts" />
+        </div>
+      </section>
 
-  <!-- Pagination -->
-  <section class="flex flex-col gap-lg">
-    <h2 class="heading-6">Pagination</h2>
-    <mr-card padding="lg">
-      <div class="flex flex-col items-center gap-sm">
-        <mr-pagination [page]="page" [totalPages]="totalPages" (pageChange)="page = $event" />
-        <p class="label-3 text-neutral-400">Page {{ page }} of {{ totalPages }}</p>
-      </div>
-    </mr-card>
-  </section>
+      <!-- Tabs -->
+      <section id="tabs" class="flex scroll-mt-2xl flex-col gap-lg">
+        <div class="flex flex-col gap-3xs">
+          <p class="label-3 text-primary-500">Navigation</p>
+          <h2 class="heading-6">Tabs</h2>
+          <p class="text-base text-neutral-400">
+            Try: click each tab — "Disabled" is unreachable by mouse or keyboard, on purpose.
+          </p>
+        </div>
+        <mr-card padding="lg">
+          <mr-tabs [(selected)]="activeTab">
+            <mr-tab label="Overview">
+              <p class="text-base text-neutral-500">Everything looks good — no incidents this week.</p>
+            </mr-tab>
+            <mr-tab label="Activity">
+              <p class="text-base text-neutral-500">3 deploys, 12 commits since Monday.</p>
+            </mr-tab>
+            <mr-tab label="Disabled" [disabled]="true">
+              <p class="text-base text-neutral-500">Not reachable.</p>
+            </mr-tab>
+          </mr-tabs>
+        </mr-card>
+        <app-usage-block name="Tabs" [html]="snippets['tabs'].html" [ts]="snippets['tabs'].ts" />
+      </section>
 
-  <!-- Table -->
-  <section class="flex flex-col gap-lg">
-    <h2 class="heading-6">Table</h2>
-    <mr-card padding="none">
-      <mr-table
-        [columns]="tableColumns"
-        [rows]="tableRows"
-        (sortChange)="onSortChange($event)"
-      />
-    </mr-card>
-    @if (lastSortEvent) {
-      <p class="label-3 text-neutral-400">
-        Last sort: {{ lastSortEvent.key }} ({{ lastSortEvent.direction }})
-      </p>
-    }
-  </section>
+      <!-- Pagination -->
+      <section id="pagination" class="flex scroll-mt-2xl flex-col gap-lg">
+        <div class="flex flex-col gap-3xs">
+          <p class="label-3 text-primary-500">Navigation</p>
+          <h2 class="heading-6">Pagination</h2>
+          <p class="text-base text-neutral-400">
+            Try: click a page number or the arrows — the "Page X of Y" line below updates from the
+            component's own <code>(pageChange)</code> event.
+          </p>
+        </div>
+        <mr-card padding="lg">
+          <div class="flex flex-col items-center gap-sm">
+            <mr-pagination [page]="page" [totalPages]="totalPages" (pageChange)="page = $event" />
+            <p class="label-3 text-neutral-400">Page {{ page }} of {{ totalPages }}</p>
+          </div>
+        </mr-card>
+        <app-usage-block
+          name="Pagination"
+          [html]="snippets['pagination'].html"
+          [ts]="snippets['pagination'].ts"
+        />
+      </section>
 
-  <!-- Spinner -->
-  <section class="flex flex-col gap-lg">
-    <h2 class="heading-6">Spinner</h2>
-    <mr-card padding="lg">
-      <div class="flex flex-wrap items-center gap-xl">
-        <mr-spinner size="sm" />
-        <mr-spinner size="md" color="primary" />
-        <mr-spinner size="lg" color="success" label="Saving" />
-      </div>
-    </mr-card>
-  </section>
+      <!-- Tooltip / dropdown / modal -->
+      <section id="overlays" class="flex scroll-mt-2xl flex-col gap-lg">
+        <div class="flex flex-col gap-3xs">
+          <p class="label-3 text-primary-500">Overlays</p>
+          <h2 class="heading-6">Tooltip, dropdown &amp; modal</h2>
+          <p class="text-base text-neutral-400">
+            Try: hover the outline button for a tooltip, open <strong>Actions</strong> for a menu
+            ("Delete" is disabled), or open the modal to see a focus-trapped confirmation dialog.
+          </p>
+        </div>
+        <mr-card padding="lg">
+          <div class="flex flex-wrap items-center gap-lg">
+            <mr-tooltip text="Copies the share link to your clipboard" position="top">
+              <mr-button variant="outline">Hover me</mr-button>
+            </mr-tooltip>
 
-  <!-- Toast -->
-  <section class="flex flex-col gap-lg">
-    <h2 class="heading-6">Toast</h2>
-    <mr-card padding="lg">
-      <div class="flex flex-wrap gap-md">
-        <mr-button color="info" (click)="showToast('info')">Info toast</mr-button>
-        <mr-button color="success" (click)="showToast('success')">Success toast</mr-button>
-        <mr-button color="warning" (click)="showToast('warning')">Warning toast</mr-button>
-        <mr-button color="error" (click)="showToast('error')">Error toast</mr-button>
-      </div>
-    </mr-card>
-  </section>
-</main>
+            <mr-dropdown>
+              <mr-button variant="outline">
+                Actions
+                <mr-icon name="chevronDown" size="sm" />
+              </mr-button>
+              <mr-dropdown-item>Edit</mr-dropdown-item>
+              <mr-dropdown-item>Duplicate</mr-dropdown-item>
+              <mr-dropdown-item [disabled]="true">Delete</mr-dropdown-item>
+            </mr-dropdown>
+
+            <mr-button (click)="modalOpen = true">Open modal</mr-button>
+            <mr-modal [(open)]="modalOpen" size="sm">
+              <div class="flex flex-col gap-lg p-2xl">
+                <h3 class="heading-6">Delete project?</h3>
+                <p class="text-base text-neutral-500">This action can't be undone.</p>
+                <div class="flex justify-end gap-sm">
+                  <mr-button variant="ghost" (click)="modalOpen = false">Cancel</mr-button>
+                  <mr-button color="error" (click)="modalOpen = false">Delete</mr-button>
+                </div>
+              </div>
+            </mr-modal>
+          </div>
+        </mr-card>
+        <div class="flex flex-col gap-lg">
+          <app-usage-block
+            name="Tooltip"
+            [html]="snippets['tooltip'].html"
+            [ts]="snippets['tooltip'].ts"
+          />
+          <app-usage-block
+            name="Dropdown"
+            [html]="snippets['dropdown'].html"
+            [ts]="snippets['dropdown'].ts"
+          />
+          <app-usage-block name="Modal" [html]="snippets['modal'].html" [ts]="snippets['modal'].ts" />
+        </div>
+      </section>
+
+      <!-- Card / badge / avatar -->
+      <section id="identity" class="flex scroll-mt-2xl flex-col gap-lg">
+        <div class="flex flex-col gap-3xs">
+          <p class="label-3 text-primary-500">Data display</p>
+          <h2 class="heading-6">Card, badge &amp; avatar</h2>
+          <p class="text-base text-neutral-400">
+            These three are static — look at how a card composes with an avatar for a person row,
+            how badge colors map to status, and the two ways an avatar can render (initials vs.
+            image).
+          </p>
+        </div>
+        <mr-card padding="lg">
+          <div class="flex flex-wrap items-center gap-xl">
+            <mr-card variant="outlined" padding="md">
+              <div class="flex items-center gap-md">
+                <mr-avatar name="Avery Chen" size="md" />
+                <div class="flex flex-col">
+                  <span class="label-2">Avery Chen</span>
+                  <span class="label-3 text-neutral-400">Engineering</span>
+                </div>
+              </div>
+            </mr-card>
+
+            <div class="flex flex-wrap gap-sm">
+              <mr-badge color="primary">Primary</mr-badge>
+              <mr-badge color="success" variant="outline">Success</mr-badge>
+              <mr-badge color="warning">Warning</mr-badge>
+              <mr-badge color="error" variant="outline">Error</mr-badge>
+            </div>
+
+            <mr-avatar initials="JB" shape="square" size="lg" />
+            <mr-avatar src="https://i.pravatar.cc/64?img=12" alt="Random user" size="lg" />
+          </div>
+        </mr-card>
+        <div class="flex flex-col gap-lg">
+          <app-usage-block name="Card" [html]="snippets['card'].html" [ts]="snippets['card'].ts" />
+          <app-usage-block name="Badge" [html]="snippets['badge'].html" [ts]="snippets['badge'].ts" />
+          <app-usage-block name="Avatar" [html]="snippets['avatar'].html" [ts]="snippets['avatar'].ts" />
+        </div>
+      </section>
+
+      <!-- Table -->
+      <section id="table" class="flex scroll-mt-2xl flex-col gap-lg">
+        <div class="flex flex-col gap-3xs">
+          <p class="label-3 text-primary-500">Data display</p>
+          <h2 class="heading-6">Table</h2>
+          <p class="text-base text-neutral-400">
+            Try: click the <strong>Name</strong> or <strong>Role</strong> column headers to sort —
+            the line below reports the exact event the table emits.
+          </p>
+        </div>
+        <mr-card padding="none">
+          <mr-table
+            [columns]="tableColumns"
+            [rows]="tableRows"
+            (sortChange)="onSortChange($event)"
+          />
+        </mr-card>
+        @if (lastSortEvent) {
+          <p class="label-3 text-neutral-400">
+            Last sort: {{ lastSortEvent.key }} ({{ lastSortEvent.direction }})
+          </p>
+        }
+        <app-usage-block name="Table" [html]="snippets['table'].html" [ts]="snippets['table'].ts" />
+      </section>
+
+      <!-- Spinner -->
+      <section id="spinner" class="flex scroll-mt-2xl flex-col gap-lg">
+        <div class="flex flex-col gap-3xs">
+          <p class="label-3 text-primary-500">Feedback</p>
+          <h2 class="heading-6">Spinner</h2>
+          <p class="text-base text-neutral-400">
+            Static — a loading indicator in three sizes, the last one paired with a label for
+            longer operations.
+          </p>
+        </div>
+        <mr-card padding="lg">
+          <div class="flex flex-wrap items-center gap-xl">
+            <mr-spinner size="sm" />
+            <mr-spinner size="md" color="primary" />
+            <mr-spinner size="lg" color="success" label="Saving" />
+          </div>
+        </mr-card>
+        <app-usage-block name="Spinner" [html]="snippets['spinner'].html" [ts]="snippets['spinner'].ts" />
+      </section>
+
+      <!-- Toast -->
+      <section id="toast" class="flex scroll-mt-2xl flex-col gap-lg">
+        <div class="flex flex-col gap-3xs">
+          <p class="label-3 text-primary-500">Feedback</p>
+          <h2 class="heading-6">Toast</h2>
+          <p class="text-base text-neutral-400">
+            Try: click any button below — each one fires a toast from the app-wide
+            <code>MrToastService</code>, rendered by the single <code>mr-toast-container</code>
+            mounted at the bottom of this page.
+          </p>
+        </div>
+        <mr-card padding="lg">
+          <div class="flex flex-wrap gap-md">
+            <mr-button color="info" (click)="showToast('info')">Info toast</mr-button>
+            <mr-button color="success" (click)="showToast('success')">Success toast</mr-button>
+            <mr-button color="warning" (click)="showToast('warning')">Warning toast</mr-button>
+            <mr-button color="error" (click)="showToast('error')">Error toast</mr-button>
+          </div>
+        </mr-card>
+        <app-usage-block name="Toast" [html]="snippets['toast'].html" [ts]="snippets['toast'].ts" />
+      </section>
+    </div>
+  </div>
+</div>
+
+@if (showBackToTop()) {
+  <button
+    type="button"
+    class="fixed bottom-2xl right-2xl flex h-11 w-11 items-center justify-center rounded-full bg-primary-500 text-white shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-primary-600"
+    aria-label="Back to top"
+    (click)="scrollToTop()"
+  >
+    <mr-icon name="chevronUp" />
+  </button>
+}
 
 <!-- Mounted once at the app root, per the library's own convention. -->
 <mr-toast-container />

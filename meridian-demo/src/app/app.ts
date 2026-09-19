@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 import { MrAvatar } from '@meridian/ui/avatar';
@@ -21,11 +21,66 @@ import type { ToastStatus } from '@meridian/ui/toast';
 import { MrToggle } from '@meridian/ui/toggle';
 import { MrTooltip } from '@meridian/ui/tooltip';
 
+import { CODE_SNIPPETS } from './code-snippets';
+import { UsageBlock } from './usage-block';
+
 interface DemoPerson {
   name: string;
   role: string;
   email: string;
 }
+
+interface NavLink {
+  id: string;
+  label: string;
+}
+
+interface NavGroup {
+  category: string;
+  links: NavLink[];
+}
+
+const NAV: NavGroup[] = [
+  {
+    category: 'Actions',
+    links: [
+      { id: 'button', label: 'Button' },
+      { id: 'icon', label: 'Icon' },
+    ],
+  },
+  {
+    category: 'Form controls',
+    links: [
+      { id: 'inputs', label: 'Input field & select' },
+      { id: 'selections', label: 'Checkbox, radio & toggle' },
+    ],
+  },
+  {
+    category: 'Navigation',
+    links: [
+      { id: 'tabs', label: 'Tabs' },
+      { id: 'pagination', label: 'Pagination' },
+    ],
+  },
+  {
+    category: 'Overlays',
+    links: [{ id: 'overlays', label: 'Tooltip, dropdown & modal' }],
+  },
+  {
+    category: 'Data display',
+    links: [
+      { id: 'identity', label: 'Card, badge & avatar' },
+      { id: 'table', label: 'Table' },
+    ],
+  },
+  {
+    category: 'Feedback',
+    links: [
+      { id: 'spinner', label: 'Spinner' },
+      { id: 'toast', label: 'Toast' },
+    ],
+  },
+];
 
 const ICON_GALLERY: MrIconName[] = [
   'chevronDown',
@@ -73,13 +128,70 @@ const ICON_GALLERY: MrIconName[] = [
     MrToastContainer,
     MrToggle,
     MrTooltip,
+    UsageBlock,
   ],
   templateUrl: './app.html',
 })
-export class App {
+export class App implements AfterViewInit, OnDestroy {
   private readonly toastService = inject(MrToastService);
+  private readonly sectionIds = NAV.flatMap((group) => group.links.map((link) => link.id));
+  private readonly observers: IntersectionObserver[] = [];
+  private readonly onWindowScroll = (): void => {
+    this.showBackToTop.set(window.scrollY > 480);
+  };
 
   protected readonly iconGallery = ICON_GALLERY;
+  protected readonly nav = NAV;
+  protected readonly snippets = CODE_SNIPPETS;
+  protected readonly activeSection = signal(this.sectionIds[0]);
+  protected readonly showBackToTop = signal(false);
+
+  ngAfterViewInit(): void {
+    const sections = this.sectionIds
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
+
+    // Fades/slides each section in the first time it crosses into view (styling in styles.scss).
+    const revealObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            revealObserver.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.08 },
+    );
+
+    // Tracks which section is nearest the top of the viewport to highlight it in the sidebar.
+    const spyObserver = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.find((entry) => entry.isIntersecting);
+        if (visible) {
+          this.activeSection.set(visible.target.id);
+        }
+      },
+      { rootMargin: '-15% 0px -70% 0px' },
+    );
+
+    for (const section of sections) {
+      revealObserver.observe(section);
+      spyObserver.observe(section);
+    }
+    this.observers.push(revealObserver, spyObserver);
+
+    window.addEventListener('scroll', this.onWindowScroll, { passive: true });
+  }
+
+  ngOnDestroy(): void {
+    this.observers.forEach((observer) => observer.disconnect());
+    window.removeEventListener('scroll', this.onWindowScroll);
+  }
+
+  protected scrollToTop(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   // --- input-field / select / checkbox / radio / toggle --------------------------------------
   protected username = '';

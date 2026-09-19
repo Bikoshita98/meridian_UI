@@ -15,6 +15,10 @@
     @apply transition-colors duration-150 ease-in-out;
   }
 
+  html {
+    @apply scroll-smooth;
+  }
+
   body {
     @apply font-sans text-base text-neutral-600 bg-white;
   }
@@ -25,5 +29,28 @@
     &:hover {
       @apply text-primary-600;
     }
+  }
+
+  // Showcase-only scroll-reveal: sections fade/slide in the first time they cross into view (see
+  // App#ngAfterViewInit). Scoped to `section[id]` so it never touches library component internals.
+  section[id] {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+
+    &.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  // Thin scrollbar for the horizontally-scrolling usage code blocks.
+  pre::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  pre::-webkit-scrollbar-thumb {
+    background-color: theme('colors.neutral.200');
+    border-radius: theme('borderRadius.pill');
   }
 }
