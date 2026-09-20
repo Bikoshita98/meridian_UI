@@ -168,4 +168,42 @@ describe('two-client convergence', () => {
     alice.close();
     bob.close();
   });
+
+  it('UPDATE_CARD: `null` actually clears a field over the real wire, distinct from omitting it', async () => {
+    // Regression test for a real bug: `JSON.stringify` drops `undefined`-valued keys entirely, so a
+    // patch meaning "clear the description" via `{ description: undefined }` would arrive over an
+    // actual WebSocket with no `description` key at all — indistinguishable from "leave it alone."
+    // This exercises the real JSON-over-the-wire boundary, not just an in-memory object.
+    const boardId = 'clear-field-board';
+    const alice = new TestClient(url);
+    await alice.open();
+    alice.send({ type: 'JOIN', boardId, userName: 'Alice' });
+    const joined = await alice.waitFor(isJoined);
+    const columnId = joined.board.columns[0].id;
+
+    alice.send({ type: 'CREATE_CARD', clientEventId: 'e1', columnId, title: 'Task', description: 'Has a description' });
+    const created = await alice.waitFor((m): m is Extract<ServerMessage, { type: 'EVENT' }> => isEvent(m) && m.event.kind === 'CARD_CREATED');
+    const cardId = (created.event as Extract<MutationEvent, { kind: 'CARD_CREATED' }>).card.id;
+
+    // Rename only — description must survive untouched.
+    alice.send({ type: 'UPDATE_CARD', clientEventId: 'e2', cardId, patch: { title: 'Renamed task' } });
+    const renamed = await alice.waitFor(
+      (m): m is Extract<ServerMessage, { type: 'EVENT' }> => isEvent(m) && m.event.kind === 'CARD_UPDATED' && m.clientEventId === 'e2',
+    );
+    alice.send({ type: 'SYNC_REQUEST' });
+    const snapshot1 = await alice.waitFor(isBoardState);
+    expect(snapshot1.board.cards.find((c) => c.id === cardId)).toMatchObject({ title: 'Renamed task', description: 'Has a description' });
+    void renamed;
+
+    // Explicit `null` — description must actually clear. `waitFor`'s "already received" replay would
+    // otherwise just re-match `snapshot1` above (same predicate) instead of waiting for a new one, so
+    // this disambiguates by `seq`, which strictly increases with every broadcast.
+    alice.send({ type: 'UPDATE_CARD', clientEventId: 'e3', cardId, patch: { description: null } });
+    await alice.waitFor((m): m is Extract<ServerMessage, { type: 'EVENT' }> => isEvent(m) && m.event.kind === 'CARD_UPDATED' && m.clientEventId === 'e3');
+    alice.send({ type: 'SYNC_REQUEST' });
+    const snapshot2 = await alice.waitFor((m): m is Extract<ServerMessage, { type: 'BOARD_STATE' }> => isBoardState(m) && m.seq > snapshot1.seq);
+    expect(snapshot2.board.cards.find((c) => c.id === cardId)!.description).toBeUndefined();
+
+    alice.close();
+  });
 });

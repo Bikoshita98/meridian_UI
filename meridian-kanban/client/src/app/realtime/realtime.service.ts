@@ -1,7 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { MrToastService } from '@meridian/ui/toast';
 import { BoardReconciler, guess } from './reconciler';
-import type { Board, ClientMessage, MutationEvent, ServerMessage, User } from './protocol';
+import type { Board, CardPatch, ClientMessage, MutationEvent, ServerMessage, User } from './protocol';
 
 export type ConnectionStatus = 'connecting' | 'open' | 'reconnecting' | 'closed';
 
@@ -24,6 +24,12 @@ export class RealtimeService {
 
   private readonly _users = signal<User[]>([]);
   readonly users = this._users.asReadonly();
+
+  // Unlike `users` (who's *currently* connected, used for the presence face-pile), this never
+  // drops an entry when someone leaves — a card can stay assigned to someone who's since gone
+  // offline, and the UI still needs their name/color to render that assignment.
+  private readonly _knownUsers = signal<Record<string, User>>({});
+  readonly knownUsers = this._knownUsers.asReadonly();
 
   private readonly _selfUserId = signal<string | null>(null);
   readonly selfUserId = this._selfUserId.asReadonly();
@@ -95,6 +101,14 @@ export class RealtimeService {
     this.reconnectTimer = setTimeout(() => this.openSocket(), delay);
   }
 
+  private rememberUsers(users: User[]): void {
+    this._knownUsers.update((known) => {
+      const next = { ...known };
+      for (const u of users) next[u.id] = u;
+      return next;
+    });
+  }
+
   private send(message: ClientMessage): void {
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(message));
   }
@@ -108,6 +122,7 @@ export class RealtimeService {
         const state = this.reconciler.setInitial(msg.board, msg.users);
         this._board.set(state.board);
         this._users.set(state.users);
+        this.rememberUsers(state.users);
         this._status.set('open');
         this.reconnectToastShown = false;
         if (resyncing) this.toast.show('Reconnected — board resynced.', { status: 'success' });
@@ -117,6 +132,7 @@ export class RealtimeService {
         const state = this.reconciler.applyBoardState(msg.board, msg.users);
         this._board.set(state.board);
         this._users.set(state.users);
+        this.rememberUsers(state.users);
         return;
       }
       case 'EVENT': {
@@ -130,6 +146,7 @@ export class RealtimeService {
       case 'USER_JOINED': {
         const state = this.reconciler.addUser(msg.user);
         this._users.set(state.users);
+        this.rememberUsers([msg.user]);
         if (msg.user.id !== this._selfUserId()) this.toast.show(`${msg.user.name} joined the board.`, { status: 'info' });
         return;
       }
@@ -184,7 +201,7 @@ export class RealtimeService {
     this.send({ type: 'CREATE_CARD', clientEventId, columnId, title, description });
   }
 
-  updateCard(cardId: string, patch: { title?: string; description?: string; assigneeId?: string }): void {
+  updateCard(cardId: string, patch: CardPatch): void {
     const clientEventId = this.clientEventId();
     const state = this.reconciler.applyOptimistic(clientEventId, { kind: 'CARD_UPDATED', cardId, patch });
     this._board.set(state.board);

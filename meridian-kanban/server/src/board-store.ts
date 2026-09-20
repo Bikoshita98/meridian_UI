@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
-import type { Board, Card, Column, MutationEvent } from './protocol.js';
+import type { Board, Card, CardPatch, Column, MutationEvent } from './protocol.js';
 
 // `node:sqlite` is a newer builtin that Vite/vitest's ESM resolver doesn't recognize as external
 // (it tries to resolve it as an npm package and fails). A runtime `require()` sidesteps that
@@ -26,6 +26,9 @@ interface CardInternal {
   title: string;
   description?: string;
   assigneeId?: string;
+  labelIds?: string[];
+  dueDate?: string;
+  coverColor?: string;
 }
 
 interface BoardState {
@@ -53,7 +56,7 @@ export type MutationInput =
   | { kind: 'RENAME_COLUMN'; columnId: string; name: string }
   | { kind: 'REORDER_COLUMNS'; columnOrder: string[] }
   | { kind: 'CREATE_CARD'; columnId: string; title: string; description?: string }
-  | { kind: 'UPDATE_CARD'; cardId: string; patch: Partial<Pick<Card, 'title' | 'description' | 'assigneeId'>> }
+  | { kind: 'UPDATE_CARD'; cardId: string; patch: CardPatch }
   | { kind: 'MOVE_CARD'; cardId: string; toColumnId: string; toIndex: number }
   | { kind: 'DELETE_CARD'; cardId: string };
 
@@ -98,7 +101,17 @@ export class BoardStore {
       const ids = state.cardOrderByColumn.get(columnId) ?? [];
       ids.forEach((cardId, order) => {
         const c = state.cards.get(cardId)!;
-        cards.push({ id: c.id, columnId, title: c.title, description: c.description, assigneeId: c.assigneeId, order });
+        cards.push({
+          id: c.id,
+          columnId,
+          title: c.title,
+          description: c.description,
+          assigneeId: c.assigneeId,
+          labelIds: c.labelIds,
+          dueDate: c.dueDate,
+          coverColor: c.coverColor,
+          order,
+        });
       });
     }
     return { id: state.id, name: state.name, columns, cards };
@@ -195,8 +208,18 @@ export class BoardStore {
       }
       case 'UPDATE_CARD': {
         const card = this.requireCard(state, input.cardId);
-        Object.assign(card, input.patch);
-        return { kind: 'CARD_UPDATED', cardId: card.id, patch: input.patch };
+        const { patch } = input;
+        // Not a plain `Object.assign(card, patch)`: `JSON.stringify` drops `undefined`-valued keys
+        // entirely, so an omitted key (leave alone) is indistinguishable from an explicit `undefined`
+        // (clear) once a patch has crossed the wire — `null` is the only value that actually survives
+        // JSON as "clear this," so that's what has to be checked for here, per field.
+        if (patch.title !== undefined) card.title = patch.title;
+        if ('description' in patch) card.description = patch.description ?? undefined;
+        if ('assigneeId' in patch) card.assigneeId = patch.assigneeId ?? undefined;
+        if (patch.labelIds !== undefined) card.labelIds = patch.labelIds;
+        if ('dueDate' in patch) card.dueDate = patch.dueDate ?? undefined;
+        if ('coverColor' in patch) card.coverColor = patch.coverColor ?? undefined;
+        return { kind: 'CARD_UPDATED', cardId: card.id, patch };
       }
       case 'MOVE_CARD': {
         const card = this.requireCard(state, input.cardId);

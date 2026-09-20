@@ -31,6 +31,47 @@ describe('applyEventToBoard', () => {
     expect(moved.cards.find((c) => c.id === 'card-2')).toMatchObject({ columnId: 'col-a', order: 0 });
   });
 
+  it('CARD_UPDATED: an omitted patch field is left alone, `null` clears it, distinct from `undefined`', () => {
+    // Regression test for a real bug: `JSON.stringify` drops `undefined`-valued keys entirely, so a
+    // patch built with `{ description: undefined }` to mean "clear the description" would arrive at
+    // the other end with no `description` key at all — indistinguishable from "don't touch it." Only
+    // an explicit `null` survives the wire as "clear this."
+    const board: Board = {
+      ...makeBoard(),
+      cards: [{ id: 'card-1', columnId: 'col-a', title: 'One', description: 'Has a description', order: 0, assigneeId: 'u1' }],
+    };
+
+    const untouched = applyEventToBoard(board, { kind: 'CARD_UPDATED', cardId: 'card-1', patch: { title: 'Renamed' } });
+    expect(untouched.cards[0]).toMatchObject({ title: 'Renamed', description: 'Has a description', assigneeId: 'u1' });
+
+    const cleared = applyEventToBoard(board, { kind: 'CARD_UPDATED', cardId: 'card-1', patch: { description: null, assigneeId: null } });
+    expect(cleared.cards[0].description).toBeUndefined();
+    expect(cleared.cards[0].assigneeId).toBeUndefined();
+    expect(cleared.cards[0].title).toBe('One');
+  });
+
+  it('CARD_UPDATED: sets and clears labelIds/dueDate/coverColor the same way', () => {
+    const board: Board = { ...makeBoard(), cards: [{ id: 'card-1', columnId: 'col-a', title: 'One', order: 0 }] };
+
+    const set = applyEventToBoard(board, {
+      kind: 'CARD_UPDATED',
+      cardId: 'card-1',
+      patch: { labelIds: ['bug', 'urgent'], dueDate: '2026-01-02', coverColor: 'info' },
+    });
+    expect(set.cards[0]).toMatchObject({ labelIds: ['bug', 'urgent'], dueDate: '2026-01-02', coverColor: 'info' });
+
+    // labelIds is always a full replacement array, not a delta — an empty array already means
+    // "no labels," no `null` trick needed the way `dueDate`/`coverColor` need one.
+    const relabeled = applyEventToBoard(set, { kind: 'CARD_UPDATED', cardId: 'card-1', patch: { labelIds: [] } });
+    expect(relabeled.cards[0].labelIds).toEqual([]);
+    expect(relabeled.cards[0].dueDate).toBe('2026-01-02');
+
+    const cleared = applyEventToBoard(set, { kind: 'CARD_UPDATED', cardId: 'card-1', patch: { dueDate: null, coverColor: null } });
+    expect(cleared.cards[0].dueDate).toBeUndefined();
+    expect(cleared.cards[0].coverColor).toBeUndefined();
+    expect(cleared.cards[0].labelIds).toEqual(['bug', 'urgent']);
+  });
+
   it('re-indexes the remaining column on CARD_DELETED', () => {
     const board = makeBoard();
     const deleted = applyEventToBoard(board, { kind: 'CARD_DELETED', cardId: 'card-1', columnId: 'col-a', order: ['card-2'] });

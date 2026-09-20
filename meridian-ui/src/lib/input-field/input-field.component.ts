@@ -27,7 +27,7 @@ export class MrInputField implements ControlValueAccessor {
   @Input() label?: string;
   @Input() placeholder = '';
   @Input() helperText?: string;
-  @Input() type: 'text' | 'email' | 'password' | 'number' | 'tel' | 'search' | 'url' = 'text';
+  @Input() type: 'text' | 'email' | 'password' | 'number' | 'tel' | 'search' | 'url' | 'date' = 'text';
 
   private readonly _size = signal<`${InputFieldSize}`>(InputFieldSize.Md);
 

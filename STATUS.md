@@ -1,4 +1,163 @@
 # Build Status
+Last updated: 2026-09-21T00:05:00Z, after: user pushed back hard on the previous update's redesign
+("THIS IS TOO SIMPLE") with a reference screenshot of a commercial tool (colorful cover-image cards,
+colored labels, status-colored columns, avatars, due-date/checklist chips). This round adds real
+functionality, not just more CSS: three new (small, bounded) `Card` fields — `labelIds`, `dueDate`,
+`coverColor` — full-stack through both `protocol.ts` files, `board-store.ts`, and the client
+reconciler, plus the UI to set and display them. Deliberately did **not** copy the reference's
+literal layout: it shows cards scattered and rotated like photos on a table, which is a marketing
+hero-shot affordance, not how any real, usable Kanban tool actually renders during real use (Trello's
+own real app is a plain grid) — copying that literally would make the board harder to read and use.
+Matched the reference's *visual richness* (color, personality, information density) instead.
+
+## What changed, this round
+
+- **Labels**: a fixed client-side preset table (`board.presets.ts`, `LABEL_PRESETS` — 6 presets, each
+  an id/text/one-of-the-7-`mr-badge`-colors), not a free-text/free-color feature — deliberately, to
+  avoid needing a color-picker UI or validating arbitrary user color input. `Card.labelIds: string[]`
+  is the only thing that persists; text/color are looked up client-side from the id. Toggled via
+  clickable `mr-badge`s in the edit modal (filled = active, outline = inactive), shown as a pill row
+  on the card face.
+- **Due date**: `Card.dueDate?: string` (ISO `yyyy-mm-dd`). Required adding `'date'` to
+  `MrInputField`'s `type` union in `meridian-ui` itself (it only supported text/email/password/number/
+  tel/search/url) — a small, generically useful addition, not kanban-specific. Rendered on the card
+  face as a small pill with a calendar icon (new `calendar` icon added to `MERIDIAN_ICONS`, same
+  precedent as last round's `link` icon), colored differently (`error` vs `neutral`) if overdue.
+- **Cover color**: `Card.coverColor?: string`, one of the same 7 semantic colors — a full-width
+  colored band across the top of the card, picked via small circular swatch buttons in the edit
+  modal. Required restructuring the card's `mr-card` from `padding="sm"` to `padding="none"` (with a
+  manual `p-sm` wrapper div around the actual content) so the cover band can sit flush with the
+  card's rounded corners instead of being inset by the component's own padding.
+- **Column status dots**: a small colored circle before each column name, cycled by column position
+  from a fixed palette — purely decorative, not tied to specific column names/meanings (columns are
+  user-named/arbitrary here, not fixed to literal "to-do/in-progress/done").
+- **Header**: added a small logo mark (reusing the join page's) next to the board name.
+- Extended `CardPatch` (both `protocol.ts` files) with the three new fields, `board-store.ts`'s
+  `UPDATE_CARD` handler, and the client reconciler's `applyCardPatch` — `labelIds` is always a full
+  replacement array (no `null`-means-clear trick needed, unlike `dueDate`/`coverColor`, since an empty
+  array already unambiguously means "no labels" and survives JSON fine).
+
+## Verification
+
+- `meridian-ui`: `npx jest` 169/169 (no new tests needed — the `date` type and `calendar` icon are
+  exercised generically by existing input-field/icon tests). `npx ng-packagr` clean.
+- `meridian-kanban/client`: `npx ng test --watch=false` 11/11 (10 previous + 1 new regression test
+  covering set/clear for all three new fields, mirroring the existing description/assignee pattern).
+  Dev and production builds both clean — production is 556.11 kB, still under the 600 kB warning
+  threshold set two updates ago.
+- `meridian-kanban/server`: `npx tsc --noEmit` clean, `npx vitest run` 2/2 (unaffected by this round —
+  the new fields reuse `UPDATE_CARD`'s already-tested clear-vs-leave-alone mechanism, so no new
+  server-side wire test was judged necessary on top of the client-side regression test above).
+- `meridian-demo`: rebuilt clean against the refreshed `dist/meridian-ui` (unaffected functionally —
+  a new icon and a new input type are both additive).
+- Real-browser pass (two simulated users): built out a multi-card board exercising every new feature
+  at once (labels, due date with correct overdue-coloring, cover color, assignee, cross-column drag)
+  and confirmed live propagation to the second client for all of it. Zero console errors.
+
+**Real repo gotcha hit again, same shape as last time — worth stating a third time since three
+strikes makes it a pattern, not a fluke**: after rebuilding `meridian-ui` for the new icon/input-type,
+the client build failed with `TS2322` errors claiming `"calendar"` and `"date"` weren't valid — because
+`rm -rf node_modules/@meridian/ui` + reinstall hadn't been done yet before that build attempt. Once
+again: **a plain `npm install` against an already-resolved `file:` dependency does not refresh its
+contents** — this project's own established fix (delete the directory first) had to be reapplied.
+
+## Next step
+
+Not mandated. If picked up next: promoting the scratch Playwright driver into a committed test (now
+three updates running without doing this) is the most overdue item in this file. Cosmetic-only if
+purely visual: the reference image's cards also show a small checklist-progress indicator
+(e.g. "8/11") — not added here since it would need actual sub-item/checklist data, a bigger feature
+than the three added this round, and wasn't asked for specifically.
+
+---
+
+Last updated: 2026-09-20T23:45:00Z, after: user-directed visual redesign of `meridian-kanban` ("the UI
+is very simple... take inspiration from Trello and Jira"). Scoped this as a UI/UX pass only — no new
+protocol capabilities (no labels, due dates, or column delete; all explicitly out of scope per
+`docs/BUILD_PROMPT.md`'s "What NOT to Build" and not touched) — plus surfacing one feature whose wire
+plumbing already existed end-to-end but was never exposed in the UI (`Card.assigneeId`).
+
+## What changed
+
+**Visual redesign (`board.page.html`, `join.page.html`)**: colored gradient canvas behind the board
+(Trello-style, `from-primary-50 via-white to-secondary-25` — semantic tokens only, per
+`CONVENTIONS.md`), column card counts as `mr-badge` pills instead of plain text, a hover-only "…" card
+menu (`opacity-0 group-hover:opacity-100`, decluttering the default card face — Trello does the same),
+card description shown truncated (`line-clamp-2`), a rotated+shadowed CDK drag preview and a dimmed
+placeholder for both card and column dragging, "+ Add a card"/"+ Add list" as real `mr-button`s with
+icons instead of plain text links, and a small logo mark + matching gradient on the join page for
+visual consistency across both screens.
+
+**New (real) feature: card assignees.** `Card.assigneeId` was already fully wired through the wire
+protocol and server (`board-store.ts`'s `UPDATE_CARD` already accepted it) but had no UI. Added: an
+"Assignee" `mr-select` in the edit-card modal (options = currently-present board members, plus the
+card's existing assignee even if they've since gone offline, so editing never silently orphans a
+valid assignment), and an `mr-avatar` shown on the card face when assigned. Required one small,
+genuinely necessary addition to `RealtimeService`: a `knownUsers` map that — unlike the live `users`
+presence list — never drops an entry when someone disconnects, since a card can stay assigned to
+someone no longer online and the UI still needs their name to render that.
+
+**Real bug found and fixed while wiring the assignee feature (not the feature's fault — it just
+happened to be the first thing to exercise "clear an optional field"):** `UPDATE_CARD` patches used
+`undefined` to mean "clear this field" (e.g. clearing a description, or unassigning a card). But
+`JSON.stringify` drops `undefined`-valued keys entirely — so a patch built to mean "clear" arrived at
+the other end of the WebSocket with no key at all, indistinguishable from "leave it alone," and
+`Object.assign(card, patch)` / `{ ...card, ...patch }` both left the old value in place. Concretely:
+clearing a card's description would flash empty optimistically, then silently snap back to the old
+text once the server's confirmation round-tripped. Fixed by introducing an explicit three-state
+`CardPatch` type (`string` = set, `null` = clear, omitted = leave alone) across both protocol.ts
+files, `board-store.ts`'s `UPDATE_CARD` handler, and the client reconciler's `applyCardPatch` — `null`
+is the only value that actually survives a JSON round-trip as "clear this." Added regression tests at
+both layers: `reconciler.spec.ts` (in-memory, exercises the reconciler's own logic) and
+`convergence.test.ts` (a real WebSocket round-trip, proving the wire-serialization boundary itself
+doesn't eat the clear instruction — the more important of the two, since that's where the bug
+actually lived).
+
+**Second real bug found via browser testing (not caught by any build/typecheck/test — same lesson as
+every prior "browser testing finds real bugs" entry in this file):** `[cdkDragPreviewClass]="'rotate-1
+shadow-xl'"` (a space-separated string) crashed CDK's drag-start with `InvalidCharacterError: Failed
+to execute 'add' on 'DOMTokenList'` — a `DOMTokenList.add()` call can't take a single token containing
+a space, and this Angular CDK version doesn't split a plain string input on whitespace itself, unlike
+what its `string | string[]` typing might suggest. The crash happened inside CDK's own pointer-move
+handler, outside Angular's normal error boundary, so it silently killed the entire drag gesture with
+no visible symptom beyond "dragging just doesn't do anything" — no console error surfaced in the UI
+itself, only in `page.on('pageerror', ...)`. Fixed by passing an actual array instead:
+`[cdkDragPreviewClass]="['rotate-1', 'shadow-xl']"`.
+
+**Small library addition**: added a `link` icon (`lucideLink2`) to `meridian-ui`'s curated
+`MERIDIAN_ICONS` registry — for "Copy board link" — a generically useful icon, not kanban-specific,
+added the same way any future icon should be (one registry entry, tree-shaken by consumers who don't
+reference it).
+
+## Verification
+
+- `meridian-ui`: `npx jest` — 169/169 (no new tests needed for the icon addition; existing icon
+  component tests already exercise the registry generically). `npx ng-packagr` clean.
+- `meridian-kanban/client`: `npx ng test --watch=false` — 10/10 (9 previous + 1 new `CARD_UPDATED`
+  clear-vs-leave-alone regression test). `npx ng build --configuration development` and production
+  build both clean (550.37 kB, still under the 600 kB warning threshold set last update).
+- `meridian-kanban/server`: `npx tsc --noEmit` clean, `npx vitest run` — 2/2 (1 previous + 1 new
+  `UPDATE_CARD` clear-field regression test over a real WebSocket connection).
+- Full real-browser pass (two simulated users again, same Playwright-in-scratch approach as the
+  previous update): join redesign, empty board, add a card with a description, hover-reveal the card
+  menu, edit modal with the new Assignee field, assigning a card to a present user and seeing the
+  avatar appear on the card face for both clients, clearing a description and confirming — after a
+  full page reload, not just optimistically — that it actually stayed cleared, and cross-column drag
+  (after the `cdkDragPreviewClass` fix) still working and propagating live. Zero console errors
+  throughout the final pass. `meridian-demo` still builds clean against the refreshed `dist/meridian-ui`
+  (not re-screenshotted — the only change affecting it is the new, purely-additive `link` icon).
+
+## Next step
+
+Not mandated. If picked up next: the drag preview/placeholder classes are a visual nicety that was
+under-verified for actual visual appearance (functionality is confirmed working; whether the
+rotation/shadow reads well during a real drag wasn't closely inspected in a screenshot). Cosmetic-only
+follow-ups if this keeps getting polished: a card-cover accent color or labels (would need real
+protocol/server changes, not just UI, per the scope boundary this update deliberately respected), and
+promoting the throwaway scratch Playwright driver into a committed test as flagged last update.
+
+---
+
 Last updated: 2026-09-20T23:20:00Z, after: worked through this file's own "Next step" list from the
 previous update, in the priority order it laid out. Four things, in `meridian-ui`, `meridian-demo`,
 and `meridian-kanban`:

@@ -3,18 +3,40 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CdkDrag, CdkDragDrop, CdkDropList, CdkDropListGroup, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MrAvatar } from '@meridian/ui/avatar';
+import { MrBadge } from '@meridian/ui/badge';
 import { MrButton } from '@meridian/ui/button';
 import { MrCard } from '@meridian/ui/card';
 import { MrDropdown, MrDropdownItem } from '@meridian/ui/dropdown';
 import { MrIcon } from '@meridian/ui/icon';
 import { MrInputField } from '@meridian/ui/input-field';
 import { MrModal } from '@meridian/ui/modal';
+import { MrSelect } from '@meridian/ui/select';
+import type { SelectOption } from '@meridian/ui/select';
 import { MrSpinner } from '@meridian/ui/spinner';
 import { RealtimeService } from '../realtime/realtime.service';
-import type { Card, Column } from '../realtime/protocol';
+import type { Card, Column, User } from '../realtime/protocol';
 import { USERNAME_STORAGE_KEY } from '../session';
+import {
+  COLUMN_ACCENT_CLASSES,
+  COVER_COLOR_CLASSES,
+  COVER_COLOR_OPTIONS,
+  LABEL_PRESETS,
+  formatDueDate,
+  isOverdue,
+  type BadgeColorName,
+} from './board.presets';
 
-type CardEditorState = { mode: 'create' | 'edit'; columnId: string; cardId?: string; title: string; description: string };
+type CardEditorState = {
+  mode: 'create' | 'edit';
+  columnId: string;
+  cardId?: string;
+  title: string;
+  description: string;
+  assigneeId?: string;
+  labelIds: string[];
+  dueDate?: string;
+  coverColor?: string;
+};
 
 @Component({
   selector: 'app-board-page',
@@ -24,6 +46,7 @@ type CardEditorState = { mode: 'create' | 'edit'; columnId: string; cardId?: str
     CdkDropList,
     CdkDropListGroup,
     MrAvatar,
+    MrBadge,
     MrButton,
     MrCard,
     MrDropdown,
@@ -31,6 +54,7 @@ type CardEditorState = { mode: 'create' | 'edit'; columnId: string; cardId?: str
     MrIcon,
     MrInputField,
     MrModal,
+    MrSelect,
     MrSpinner,
   ],
   templateUrl: './board.page.html',
@@ -43,10 +67,29 @@ export class BoardPage {
 
   protected readonly board = this.realtime.board;
   protected readonly users = this.realtime.users;
+  protected readonly knownUsers = this.realtime.knownUsers;
   protected readonly status = this.realtime.status;
+
+  // Only board members currently present can be *picked* as a new assignee — plus whoever the
+  // card being edited is already assigned to, even if they've since gone offline, so editing
+  // doesn't silently clear a valid assignment just because that person isn't online right now.
+  protected readonly assigneeOptions = computed<SelectOption<string>[]>(() => {
+    const present = new Map(this.users().map((u) => [u.id, u]));
+    const editorAssigneeId = this.cardEditor()?.assigneeId;
+    if (editorAssigneeId && !present.has(editorAssigneeId)) {
+      const known = this.knownUsers()[editorAssigneeId];
+      if (known) present.set(known.id, known);
+    }
+    return [{ label: 'Unassigned', value: '' }, ...[...present.values()].map((u) => ({ label: u.name, value: u.id }))];
+  });
 
   protected readonly sortedColumns = computed<Column[]>(() => [...(this.board()?.columns ?? [])].sort((a, b) => a.order - b.order));
   protected readonly columnIds = computed(() => this.sortedColumns().map((c) => c.id));
+
+  protected readonly labelPresets = LABEL_PRESETS;
+  protected readonly coverColorOptions = COVER_COLOR_OPTIONS;
+  protected readonly formatDueDate = formatDueDate;
+  protected readonly isOverdue = isOverdue;
 
   protected readonly newColumnName = signal('');
   protected readonly cardEditor = signal<CardEditorState | null>(null);
@@ -74,6 +117,40 @@ export class BoardPage {
 
   protected cardsIn(columnId: string): Card[] {
     return (this.board()?.cards ?? []).filter((c) => c.columnId === columnId).sort((a, b) => a.order - b.order);
+  }
+
+  protected assigneeOf(card: Card): User | undefined {
+    return card.assigneeId ? this.knownUsers()[card.assigneeId] : undefined;
+  }
+
+  protected labelsOn(card: Card) {
+    const ids = new Set(card.labelIds ?? []);
+    return this.labelPresets.filter((p) => ids.has(p.id));
+  }
+
+  protected coverClass(card: Card): string | null {
+    return card.coverColor ? COVER_COLOR_CLASSES[card.coverColor as BadgeColorName] : null;
+  }
+
+  protected swatchClass(color: BadgeColorName): string {
+    return COVER_COLOR_CLASSES[color];
+  }
+
+  protected columnAccentClass(index: number): string {
+    return COLUMN_ACCENT_CLASSES[index % COLUMN_ACCENT_CLASSES.length];
+  }
+
+  protected toggleLabel(id: string): void {
+    const editor = this.cardEditor();
+    if (!editor) return;
+    const has = editor.labelIds.includes(id);
+    this.patchEditor({ labelIds: has ? editor.labelIds.filter((l) => l !== id) : [...editor.labelIds, id] });
+  }
+
+  protected toggleCoverColor(color: BadgeColorName): void {
+    const editor = this.cardEditor();
+    if (!editor) return;
+    this.patchEditor({ coverColor: editor.coverColor === color ? undefined : color });
   }
 
   protected addColumn(): void {
@@ -110,11 +187,21 @@ export class BoardPage {
   }
 
   protected openCreateCard(columnId: string): void {
-    this.cardEditor.set({ mode: 'create', columnId, title: '', description: '' });
+    this.cardEditor.set({ mode: 'create', columnId, title: '', description: '', labelIds: [] });
   }
 
   protected openEditCard(card: Card): void {
-    this.cardEditor.set({ mode: 'edit', columnId: card.columnId, cardId: card.id, title: card.title, description: card.description ?? '' });
+    this.cardEditor.set({
+      mode: 'edit',
+      columnId: card.columnId,
+      cardId: card.id,
+      title: card.title,
+      description: card.description ?? '',
+      assigneeId: card.assigneeId,
+      labelIds: card.labelIds ?? [],
+      dueDate: card.dueDate,
+      coverColor: card.coverColor,
+    });
   }
 
   protected closeCardEditor(): void {
@@ -127,7 +214,14 @@ export class BoardPage {
     if (editor.mode === 'create') {
       this.realtime.createCard(editor.columnId, editor.title.trim(), editor.description.trim() || undefined);
     } else {
-      this.realtime.updateCard(editor.cardId!, { title: editor.title.trim(), description: editor.description.trim() || undefined });
+      this.realtime.updateCard(editor.cardId!, {
+        title: editor.title.trim(),
+        description: editor.description.trim() || null,
+        assigneeId: editor.assigneeId || null,
+        labelIds: editor.labelIds,
+        dueDate: editor.dueDate || null,
+        coverColor: editor.coverColor || null,
+      });
     }
     this.cardEditor.set(null);
   }

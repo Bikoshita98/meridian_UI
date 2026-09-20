@@ -12,19 +12,23 @@
 } @else {
   <header class="flex items-center justify-between px-lg py-md bg-white border-b border-neutral-100">
     <div class="flex items-center gap-md">
+      <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-primary-500 text-white font-semibold shrink-0">M</span>
       <div>
         <h1 class="heading-5 text-neutral-800">{{ board()!.name }}</h1>
-        <button type="button" class="label-3 text-primary-500 hover:underline" (click)="copyBoardLink()">Copy board link</button>
+        <button type="button" class="flex items-center gap-3xs label-3 text-primary-500 hover:underline" (click)="copyBoardLink()">
+          <mr-icon name="link" size="xs"></mr-icon>
+          Copy board link
+        </button>
       </div>
-      <div class="flex items-center -space-x-2">
-        @for (u of users(); track u.id) {
-          <mr-avatar size="sm" shape="circle" [name]="u.name" class="ring-2 ring-white rounded-pill"></mr-avatar>
-        }
-      </div>
+    </div>
+    <div class="flex items-center -space-x-2">
+      @for (u of users(); track u.id) {
+        <mr-avatar size="sm" shape="circle" [name]="u.name" class="ring-2 ring-white rounded-pill"></mr-avatar>
+      }
     </div>
   </header>
 
-  <main class="p-lg overflow-x-auto" cdkDropListGroup>
+  <main class="p-lg overflow-x-auto min-h-[calc(100vh-57px)] bg-gradient-to-br from-primary-50 via-white to-secondary-25" cdkDropListGroup>
     <div
       cdkDropList
       cdkDropListOrientation="horizontal"
@@ -32,23 +36,31 @@
       (cdkDropListDropped)="onColumnDrop($event)"
       class="flex items-start gap-lg"
     >
-      @for (column of sortedColumns(); track column.id) {
-        <div cdkDrag [cdkDragData]="column.id" class="w-72 shrink-0">
+      @for (column of sortedColumns(); track column.id; let colIndex = $index) {
+        <div cdkDrag [cdkDragData]="column.id" [cdkDragPreviewClass]="['rotate-1', 'shadow-xl']" class="w-72 shrink-0">
           <mr-card variant="elevated" padding="md">
             <div cdkDragHandle class="flex items-center justify-between mb-sm cursor-grab">
-              @if (editingColumnId() === column.id) {
-                <mr-input-field
-                  size="sm"
-                  [ngModel]="editingColumnName()"
-                  (ngModelChange)="editingColumnName.set($event)"
-                  (blur)="commitRenameColumn(column.id)"
-                  (keydown.enter)="commitRenameColumn(column.id)"
-                  class="flex-1"
-                ></mr-input-field>
-              } @else {
-                <h3 class="label-1 text-neutral-700 cursor-text" (click)="startRenameColumn(column)">{{ column.name }}</h3>
-              }
-              <span class="label-3 text-neutral-400">{{ cardsIn(column.id).length }}</span>
+              <div class="flex items-center gap-xs min-w-0">
+                <span class="w-2 h-2 rounded-full shrink-0" [class]="columnAccentClass(colIndex)"></span>
+                @if (editingColumnId() === column.id) {
+                  <mr-input-field
+                    size="sm"
+                    [ngModel]="editingColumnName()"
+                    (ngModelChange)="editingColumnName.set($event)"
+                    (blur)="commitRenameColumn(column.id)"
+                    (keydown.enter)="commitRenameColumn(column.id)"
+                    class="flex-1"
+                  ></mr-input-field>
+                } @else {
+                  <h3
+                    class="label-1 text-neutral-700 cursor-text px-2xs -mx-2xs py-3xs rounded hover:bg-neutral-100 truncate"
+                    (click)="startRenameColumn(column)"
+                  >
+                    {{ column.name }}
+                  </h3>
+                }
+              </div>
+              <mr-badge variant="filled" color="neutral">{{ cardsIn(column.id).length }}</mr-badge>
             </div>
 
             <div
@@ -57,50 +69,88 @@
               [cdkDropListData]="cardsIn(column.id)"
               [cdkDropListConnectedTo]="columnIds()"
               (cdkDropListDropped)="onCardDrop($event, column.id)"
-              class="flex flex-col gap-sm min-h-[24px]"
+              class="flex flex-col gap-sm min-h-6 max-h-[calc(100vh-260px)] overflow-y-auto -mr-2xs pr-2xs"
             >
               @for (card of cardsIn(column.id); track card.id) {
-                <div cdkDrag [cdkDragData]="card.id" class="card-item">
-                  <mr-card variant="outlined" padding="sm">
-                    <div class="flex items-start justify-between gap-sm">
-                      <p class="label-2 text-neutral-700 flex-1 break-words">{{ card.title }}</p>
-                      <mr-dropdown position="bottom-end">
-                        <button type="button" class="p-1 rounded hover:bg-neutral-100" aria-label="Card actions">
-                          <mr-icon name="moreHorizontal" size="sm"></mr-icon>
-                        </button>
-                        <mr-dropdown-item (click)="openEditCard(card)">Edit</mr-dropdown-item>
-                        <mr-dropdown-item (click)="deleteCard(card.id)">Delete</mr-dropdown-item>
-                      </mr-dropdown>
-                    </div>
-                    @if (card.description) {
-                      <p class="label-3 text-neutral-500 mt-2xs break-words">{{ card.description }}</p>
+                <div
+                  cdkDrag
+                  [cdkDragData]="card.id"
+                  [cdkDragPreviewClass]="['rotate-1', 'shadow-xl']"
+                  cdkDragPlaceholderClass="opacity-40"
+                  class="card-item group"
+                >
+                  <mr-card variant="elevated" padding="none" class="hover:shadow-md cursor-grab overflow-hidden">
+                    @if (coverClass(card); as cover) {
+                      <div class="h-10" [class]="cover"></div>
                     }
+                    <div class="p-sm">
+                      @if (labelsOn(card).length) {
+                        <div class="flex flex-wrap gap-3xs mb-2xs">
+                          @for (label of labelsOn(card); track label.id) {
+                            <mr-badge variant="filled" [color]="label.color">{{ label.text }}</mr-badge>
+                          }
+                        </div>
+                      }
+                      <div class="flex items-start justify-between gap-sm">
+                        <p class="label-2 text-neutral-700 flex-1 break-words">{{ card.title }}</p>
+                        <mr-dropdown position="bottom-end" class="opacity-0 group-hover:opacity-100">
+                          <button type="button" class="p-1 rounded hover:bg-neutral-100" aria-label="Card actions">
+                            <mr-icon name="moreHorizontal" size="sm"></mr-icon>
+                          </button>
+                          <mr-dropdown-item (click)="openEditCard(card)">Edit</mr-dropdown-item>
+                          <mr-dropdown-item (click)="deleteCard(card.id)">Delete</mr-dropdown-item>
+                        </mr-dropdown>
+                      </div>
+                      @if (card.description) {
+                        <p class="label-3 text-neutral-500 mt-2xs break-words line-clamp-2">{{ card.description }}</p>
+                      }
+                      @if (card.dueDate || assigneeOf(card)) {
+                        <div class="flex items-center justify-between mt-sm">
+                          @if (card.dueDate) {
+                            <span
+                              class="flex items-center gap-3xs label-3 px-2xs py-3xs rounded"
+                              [class]="isOverdue(card.dueDate) ? 'bg-error-50 text-error-600' : 'bg-neutral-100 text-neutral-500'"
+                            >
+                              <mr-icon name="calendar" size="xs"></mr-icon>
+                              {{ formatDueDate(card.dueDate) }}
+                            </span>
+                          } @else {
+                            <span></span>
+                          }
+                          @if (assigneeOf(card); as assignee) {
+                            <mr-avatar size="xs" shape="circle" [name]="assignee.name"></mr-avatar>
+                          }
+                        </div>
+                      }
+                    </div>
                   </mr-card>
                 </div>
               }
             </div>
 
-            <button
-              type="button"
-              class="label-3 text-primary-500 hover:underline mt-sm"
-              (click)="openCreateCard(column.id)"
-            >
-              + Add card
-            </button>
+            <mr-button variant="ghost" color="neutral" size="sm" class="mt-sm" (click)="openCreateCard(column.id)">
+              <mr-icon name="plus" size="xs"></mr-icon>
+              Add a card
+            </mr-button>
           </mr-card>
         </div>
       }
 
       <div class="w-72 shrink-0">
-        <mr-input-field
-          size="sm"
-          placeholder="New column name"
-          [ngModel]="newColumnName()"
-          (ngModelChange)="newColumnName.set($event)"
-          (keydown.enter)="addColumn()"
-          class="block mb-sm"
-        ></mr-input-field>
-        <mr-button variant="outline" color="primary" size="sm" (click)="addColumn()">+ Add column</mr-button>
+        <mr-card variant="outlined" padding="md">
+          <mr-input-field
+            size="sm"
+            placeholder="New list name"
+            [ngModel]="newColumnName()"
+            (ngModelChange)="newColumnName.set($event)"
+            (keydown.enter)="addColumn()"
+            class="block mb-sm"
+          ></mr-input-field>
+          <mr-button variant="filled" color="primary" size="sm" (click)="addColumn()">
+            <mr-icon name="plus" size="xs"></mr-icon>
+            Add list
+          </mr-button>
+        </mr-card>
       </div>
     </div>
   </main>
@@ -116,6 +166,51 @@
         [ngModel]="editor.description"
         (ngModelChange)="patchEditor({ description: $event })"
       ></mr-input-field>
+
+      @if (editor.mode === 'edit') {
+        <mr-select
+          label="Assignee"
+          [options]="assigneeOptions()"
+          [ngModel]="editor.assigneeId ?? ''"
+          (ngModelChange)="patchEditor({ assigneeId: $event || undefined })"
+        ></mr-select>
+
+        <mr-input-field
+          label="Due date"
+          type="date"
+          [ngModel]="editor.dueDate ?? ''"
+          (ngModelChange)="patchEditor({ dueDate: $event || undefined })"
+        ></mr-input-field>
+
+        <div>
+          <span class="label-2 text-neutral-600 block mb-2xs">Labels</span>
+          <div class="flex flex-wrap gap-2xs">
+            @for (preset of labelPresets; track preset.id) {
+              <button type="button" (click)="toggleLabel(preset.id)">
+                <mr-badge [variant]="editor.labelIds.includes(preset.id) ? 'filled' : 'outline'" [color]="preset.color">
+                  {{ preset.text }}
+                </mr-badge>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div>
+          <span class="label-2 text-neutral-600 block mb-2xs">Cover color</span>
+          <div class="flex items-center gap-2xs">
+            @for (color of coverColorOptions; track color) {
+              <button
+                type="button"
+                class="w-6 h-6 rounded-full border-2"
+                [class]="swatchClass(color) + ' ' + (editor.coverColor === color ? 'border-neutral-700' : 'border-transparent')"
+                (click)="toggleCoverColor(color)"
+                [attr.aria-label]="color + ' cover'"
+              ></button>
+            }
+          </div>
+        </div>
+      }
+
       <div class="flex justify-end gap-sm mt-md">
         <mr-button variant="ghost" color="neutral" (click)="closeCardEditor()">Cancel</mr-button>
         <mr-button variant="filled" color="primary" [disabled]="!editor.title.trim()" (click)="saveCardEditor()">Save</mr-button>

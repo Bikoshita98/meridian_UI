@@ -1,4 +1,21 @@
-import type { Board, Card, MutationEvent, User } from './protocol';
+import type { Board, Card, CardPatch, MutationEvent, User } from './protocol';
+
+// Not a plain `{ ...card, ...patch }` spread: `JSON.stringify` drops `undefined`-valued keys
+// entirely, so an omitted key (leave alone) is indistinguishable from an explicit `undefined`
+// (clear) once a patch has crossed the wire — `null` is the only value that actually survives JSON
+// as "clear this," so that's what has to be checked for here, per field. Mirrors the server's own
+// `UPDATE_CARD` handling in `board-store.ts`.
+function applyCardPatch(card: Card, patch: CardPatch): Card {
+  return {
+    ...card,
+    ...(patch.title !== undefined ? { title: patch.title } : {}),
+    ...('description' in patch ? { description: patch.description ?? undefined } : {}),
+    ...('assigneeId' in patch ? { assigneeId: patch.assigneeId ?? undefined } : {}),
+    ...(patch.labelIds !== undefined ? { labelIds: patch.labelIds } : {}),
+    ...('dueDate' in patch ? { dueDate: patch.dueDate ?? undefined } : {}),
+    ...('coverColor' in patch ? { coverColor: patch.coverColor ?? undefined } : {}),
+  };
+}
 
 /**
  * The heart of the whole app: applying a `MutationEvent` to a `Board` is a pure "replace with
@@ -25,7 +42,10 @@ export function applyEventToBoard(board: Board, event: MutationEvent): Board {
       return { ...board, cards: [...board.cards, event.card] };
 
     case 'CARD_UPDATED':
-      return { ...board, cards: board.cards.map((c) => (c.id === event.cardId ? { ...c, ...event.patch } : c)) };
+      return {
+        ...board,
+        cards: board.cards.map((c) => (c.id === event.cardId ? applyCardPatch(c, event.patch) : c)),
+      };
 
     case 'CARD_MOVED': {
       const byId = new Map(board.cards.map((c) => [c.id, c]));
