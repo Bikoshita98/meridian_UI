@@ -1,0 +1,39 @@
+<main class="min-h-screen flex items-center justify-center px-lg">
+  <mr-card variant="elevated" padding="lg" class="w-full max-w-md">
+    <h1 class="heading-4 text-neutral-800 mb-lg">Meridian Kanban</h1>
+
+    <mr-input-field
+      label="Your name"
+      placeholder="e.g. Alex"
+      [ngModel]="userName()"
+      (ngModelChange)="userName.set($event)"
+      class="block mb-xl"
+    ></mr-input-field>
+
+    <section class="mb-xl">
+      <h2 class="label-1 text-neutral-500 mb-md">Create a new board</h2>
+      <mr-input-field
+        label="Board name (optional)"
+        placeholder="e.g. Sprint 12"
+        [ngModel]="boardName()"
+        (ngModelChange)="boardName.set($event)"
+        class="block mb-md"
+      ></mr-input-field>
+      <mr-button variant="filled" color="primary" [disabled]="!userName().trim()" (click)="createBoard()">Create board</mr-button>
+    </section>
+
+    <section>
+      <h2 class="label-1 text-neutral-500 mb-md">Join an existing board</h2>
+      <mr-input-field
+        label="Board ID"
+        placeholder="Paste a board ID"
+        [ngModel]="joinBoardId()"
+        (ngModelChange)="joinBoardId.set($event)"
+        class="block mb-md"
+      ></mr-input-field>
+      <mr-button variant="outline" color="primary" [disabled]="!userName().trim() || !joinBoardId().trim()" (click)="joinExistingBoard()">
+        Join board
+      </mr-button>
+    </section>
+  </mr-card>
+</main>

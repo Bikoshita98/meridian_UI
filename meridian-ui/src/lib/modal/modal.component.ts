@@ -1,4 +1,5 @@
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
@@ -25,7 +26,7 @@ import { modalPanelVariants } from './modal.variants';
   templateUrl: './modal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class MrModal implements OnDestroy {
+export class MrModal implements AfterViewInit, OnDestroy {
   private readonly overlay = inject(Overlay);
   private readonly viewContainerRef = inject(ViewContainerRef);
 
@@ -62,6 +63,13 @@ export class MrModal implements OnDestroy {
 
   private overlayRef?: OverlayRef;
   private previouslyFocusedElement?: HTMLElement;
+  // Guards against a real crash: a consumer that conditionally instantiates `<mr-modal>` itself
+  // (e.g. an `@if` wrapping it) with `[open]` already `true` on creation causes this constructor
+  // effect's first flush to fire before Angular has resolved `@ViewChild('modalTemplate')` on the
+  // brand-new instance, so `attach()` would otherwise run with an undefined template ref. `attach()`
+  // no-ops until `ngAfterViewInit` flips this, which then performs the (now-safe) initial attach
+  // itself if `open` was already true — no crash regardless of how a consumer mounts this component.
+  private viewReady = false;
 
   constructor() {
     effect(() => {
@@ -71,6 +79,13 @@ export class MrModal implements OnDestroy {
         this.detach();
       }
     });
+  }
+
+  ngAfterViewInit(): void {
+    this.viewReady = true;
+    if (this._open()) {
+      this.attach();
+    }
   }
 
   ngOnDestroy(): void {
@@ -83,7 +98,7 @@ export class MrModal implements OnDestroy {
   }
 
   private attach(): void {
-    if (this.overlayRef) {
+    if (this.overlayRef || !this.viewReady) {
       return;
     }
 

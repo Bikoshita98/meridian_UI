@@ -19,6 +19,20 @@ class ModalHost {
   @Input() size: `${ModalSize}` = ModalSize.Md;
 }
 
+@Component({
+  imports: [MrModal],
+  template: `
+    @if (mounted) {
+      <mr-modal [open]="true">
+        <button type="button">Confirm</button>
+      </mr-modal>
+    }
+  `,
+})
+class LazilyMountedOpenModalHost {
+  @Input() mounted = false;
+}
+
 describe('MrModal', () => {
   let fixture: ComponentFixture<ModalHost>;
   let overlayContainer: OverlayContainer;
@@ -127,5 +141,23 @@ describe('MrModal', () => {
     fixture.detectChanges();
 
     expect(dialog()?.className).toContain('max-w-lg');
+  });
+
+  it('does not crash and still renders when a consumer conditionally instantiates it with `open` already true', async () => {
+    // Regression test for a real bug found via browser testing (meridian-kanban's add-card modal):
+    // a consumer wrapping `<mr-modal [open]="true">` in an `@if` mounts a brand-new `MrModal`
+    // instance with `open` already true, so the constructor effect's first flush used to run
+    // before `@ViewChild('modalTemplate')` had resolved, throwing when `attach()` tried to build a
+    // `TemplatePortal` from an undefined template ref.
+    const lazyFixture = TestBed.createComponent(LazilyMountedOpenModalHost);
+    lazyFixture.detectChanges();
+
+    expect(() => {
+      lazyFixture.componentRef.setInput('mounted', true);
+      lazyFixture.detectChanges();
+    }).not.toThrow();
+
+    const lazyOverlayContainer = TestBed.inject(OverlayContainer);
+    expect(lazyOverlayContainer.getContainerElement().querySelector('[role="dialog"]')).toBeTruthy();
   });
 });
