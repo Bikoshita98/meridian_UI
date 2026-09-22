@@ -37,7 +37,14 @@
       class="flex items-start gap-lg"
     >
       @for (column of sortedColumns(); track column.id; let colIndex = $index) {
-        <div cdkDrag [cdkDragData]="column.id" [cdkDragPreviewClass]="['rotate-1', 'shadow-xl']" class="w-72 shrink-0">
+        <div
+          cdkDrag
+          [cdkDragData]="column.id"
+          [cdkDragPreviewClass]="['rotate-1', 'shadow-xl']"
+          class="w-72 shrink-0"
+          data-testid="column"
+          [attr.data-column-name]="column.name"
+        >
           <mr-card variant="elevated" padding="md">
             <div cdkDragHandle class="flex items-center justify-between mb-sm cursor-grab">
               <div class="flex items-center gap-xs min-w-0">
@@ -70,6 +77,7 @@
               [cdkDropListConnectedTo]="columnIds()"
               (cdkDropListDropped)="onCardDrop($event, column.id)"
               class="flex flex-col gap-sm min-h-6 max-h-[calc(100vh-260px)] overflow-y-auto -mr-2xs pr-2xs"
+              data-testid="column-cards"
             >
               @for (card of cardsIn(column.id); track card.id) {
                 <div
@@ -78,6 +86,7 @@
                   [cdkDragPreviewClass]="['rotate-1', 'shadow-xl']"
                   cdkDragPlaceholderClass="opacity-40"
                   class="card-item group"
+                  data-testid="card"
                 >
                   <mr-card variant="elevated" padding="none" class="hover:shadow-md cursor-grab overflow-hidden">
                     @if (coverClass(card); as cover) {

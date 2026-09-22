@@ -1,4 +1,62 @@
 # Build Status
+Last updated: 2026-09-22T02:35:00Z, after: closed the one item flagged "most overdue" for three
+updates running — committed the Playwright smoke test `meridian-kanban/docs/BUILD_PROMPT.md`'s
+Testing section actually requires ("two real browser contexts... dragging a card in one and
+asserting it appears moved in the other"), instead of the throwaway scratch driver every prior
+round used for manual verification only.
+
+## What changed
+
+- **New `meridian-kanban/e2e/`** — its own small package (`@playwright/test` only), sibling to
+  `client/` and `server/`, matching this repo's established no-monorepo-tooling precedent (each app
+  under `meridian-kanban/` owns its own `package.json`).
+- **`playwright.config.ts` runs both real processes**, not a mock of either: a `webServer` array
+  starts the actual server (`npm run start` in `server/`, port 8787 — the client hardcodes
+  `ws://<host>:8787` in `realtime.service.ts`, so this can't be remapped) and the actual client
+  (`npm run start` in `client/`, `ng serve` on 4200). The server entry uses Playwright's `port`
+  readiness check, not `url` — `ws-server.ts`'s `http.createServer()` has no request handler, so a
+  plain HTTP GET (what a `url` check would issue) hangs forever; a raw TCP-connect check is the
+  correct fit here. Persistence is isolated via a dedicated `KANBAN_DB_PATH` under `e2e/.tmp/`
+  (gitignored, `fs.mkdirSync`'d by the config itself) so running the suite never touches a
+  developer's own `npm run dev` data.
+- **`tests/board.spec.ts`**: two real browser contexts (Alice, Bob). Alice creates a board, Bob
+  joins it by id, Alice adds a card to "To Do" and it appears on Bob's board with no reload
+  (proves the create broadcasts live), then Alice drags the card from "To Do" into "In Progress"
+  using real multi-step pointer events (`mouse.down` → small jiggle to clear CDK's drag-start
+  distance threshold → many-step move → `mouse.up`, not a synthetic `dragTo` — the same "slow
+  multi-step pointer paths, drag-threshold jiggle, settle delays" shape this project's own past
+  manual Playwright verification found necessary, per earlier entries in this file) — asserted to
+  land in "In Progress" and disappear from "To Do" on **both** clients, the second one purely from
+  the server's broadcast.
+- **Small, minimal `board.page.html` change to make the test robust, not fragile-selector-driven**:
+  added `data-testid="column"` + `[attr.data-column-name]="column.name"` on each column, and
+  `data-testid="column-cards"` / `data-testid="card"` on the card list and each card. Everything
+  else the test drives (`Your name`, `Board name`, `Title`, `Create board`, `Save`, etc.) uses real
+  accessible labels/roles already present (`mr-input-field` renders a real `<label for>`), needing
+  no test-only hooks.
+
+## Verification
+
+- Ran the new suite for real, twice in a row, from a cold `webServer` start each time (not
+  `reuseExistingServer`): **1/1 passed both times**, ~4s test time / ~8s total including both real
+  app startups. Chromium already present in this machine's Playwright cache; `npx playwright
+  install --with-deps chromium` was a no-op.
+- `meridian-kanban/client`: `npx ng test --watch=false` — still **11/11** after the `data-testid`
+  additions (purely additive attributes, no behavior/logic touched).
+- Did not re-run `meridian-ui`/`meridian-kanban/server` suites — neither was touched by this update.
+
+## Next step
+
+Not mandated. The Testing section's three requirements (client reconciliation unit tests, server
+convergence integration test, committed Playwright smoke test) are now all satisfied — nothing
+outstanding from `BUILD_PROMPT.md` is known right now. If picked up next: the smoke test covers the
+one scenario the prompt named explicitly (create + cross-column drag, two clients); it does not
+cover reconnect/resync, which is currently only manually verified per this file's own history — a
+reasonable next addition to the same `e2e/` suite if this keeps growing, but wasn't asked for
+specifically and the prompt's own Testing section only names the drag scenario.
+
+---
+
 Last updated: 2026-09-21T00:05:00Z, after: user pushed back hard on the previous update's redesign
 ("THIS IS TOO SIMPLE") with a reference screenshot of a commercial tool (colorful cover-image cards,
 colored labels, status-colored columns, avatars, due-date/checklist chips). This round adds real
