@@ -1,0 +1,109 @@
+{
+  "name": "@meridian/ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Meridian UI - Angular + Tailwind component/design-system library",
+  "peerDependencies": {
+    "@angular/common": "^22.0.0",
+    "@angular/core": "^22.0.0",
+    "@angular/forms": "^22.0.0",
+    "@angular/cdk": "^22.0.0",
+    "rxjs": "^7.8.0"
+  },
+  "dependencies": {
+    "tailwind-variants": "^3.3.1",
+    "tailwind-merge": "^3.7.0",
+    "@ng-icons/core": "^36.0.0",
+    "@ng-icons/lucide": "^36.0.0",
+    "tslib": "^2.3.0"
+  },
+  "module": "fesm2022/meridian-ui.mjs",
+  "typings": "types/meridian-ui.d.ts",
+  "exports": {
+    "./package.json": {
+      "default": "./package.json"
+    },
+    ".": {
+      "types": "./types/meridian-ui.d.ts",
+      "default": "./fesm2022/meridian-ui.mjs"
+    },
+    "./avatar": {
+      "types": "./types/meridian-ui-avatar.d.ts",
+      "default": "./fesm2022/meridian-ui-avatar.mjs"
+    },
+    "./badge": {
+      "types": "./types/meridian-ui-badge.d.ts",
+      "default": "./fesm2022/meridian-ui-badge.mjs"
+    },
+    "./button": {
+      "types": "./types/meridian-ui-button.d.ts",
+      "default": "./fesm2022/meridian-ui-button.mjs"
+    },
+    "./card": {
+      "types": "./types/meridian-ui-card.d.ts",
+      "default": "./fesm2022/meridian-ui-card.mjs"
+    },
+    "./checkbox": {
+      "types": "./types/meridian-ui-checkbox.d.ts",
+      "default": "./fesm2022/meridian-ui-checkbox.mjs"
+    },
+    "./dropdown": {
+      "types": "./types/meridian-ui-dropdown.d.ts",
+      "default": "./fesm2022/meridian-ui-dropdown.mjs"
+    },
+    "./icon": {
+      "types": "./types/meridian-ui-icon.d.ts",
+      "default": "./fesm2022/meridian-ui-icon.mjs"
+    },
+    "./input-field": {
+      "types": "./types/meridian-ui-input-field.d.ts",
+      "default": "./fesm2022/meridian-ui-input-field.mjs"
+    },
+    "./label": {
+      "types": "./types/meridian-ui-label.d.ts",
+      "default": "./fesm2022/meridian-ui-label.mjs"
+    },
+    "./modal": {
+      "types": "./types/meridian-ui-modal.d.ts",
+      "default": "./fesm2022/meridian-ui-modal.mjs"
+    },
+    "./pagination": {
+      "types": "./types/meridian-ui-pagination.d.ts",
+      "default": "./fesm2022/meridian-ui-pagination.mjs"
+    },
+    "./radio": {
+      "types": "./types/meridian-ui-radio.d.ts",
+      "default": "./fesm2022/meridian-ui-radio.mjs"
+    },
+    "./select": {
+      "types": "./types/meridian-ui-select.d.ts",
+      "default": "./fesm2022/meridian-ui-select.mjs"
+    },
+    "./spinner": {
+      "types": "./types/meridian-ui-spinner.d.ts",
+      "default": "./fesm2022/meridian-ui-spinner.mjs"
+    },
+    "./table": {
+      "types": "./types/meridian-ui-table.d.ts",
+      "default": "./fesm2022/meridian-ui-table.mjs"
+    },
+    "./tabs": {
+      "types": "./types/meridian-ui-tabs.d.ts",
+      "default": "./fesm2022/meridian-ui-tabs.mjs"
+    },
+    "./toast": {
+      "types": "./types/meridian-ui-toast.d.ts",
+      "default": "./fesm2022/meridian-ui-toast.mjs"
+    },
+    "./toggle": {
+      "types": "./types/meridian-ui-toggle.d.ts",
+      "default": "./fesm2022/meridian-ui-toggle.mjs"
+    },
+    "./tooltip": {
+      "types": "./types/meridian-ui-tooltip.d.ts",
+      "default": "./fesm2022/meridian-ui-tooltip.mjs"
+    }
+  },
+  "sideEffects": false,
+  "type": "module"
+}

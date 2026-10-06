@@ -1,0 +1,4 @@
+{
+  "module": "../fesm2022/meridian-ui-input-field.mjs",
+  "typings": "../types/meridian-ui-input-field.d.ts"
+}

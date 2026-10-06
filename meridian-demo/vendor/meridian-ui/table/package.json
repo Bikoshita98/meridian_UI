@@ -1,0 +1,4 @@
+{
+  "module": "../fesm2022/meridian-ui-table.mjs",
+  "typings": "../types/meridian-ui-table.d.ts"
+}

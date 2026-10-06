@@ -1,0 +1,4 @@
+{
+  "module": "../fesm2022/meridian-ui-dropdown.mjs",
+  "typings": "../types/meridian-ui-dropdown.d.ts"
+}

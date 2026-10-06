@@ -1,0 +1,4 @@
+{
+  "module": "../fesm2022/meridian-ui-radio.mjs",
+  "typings": "../types/meridian-ui-radio.d.ts"
+}

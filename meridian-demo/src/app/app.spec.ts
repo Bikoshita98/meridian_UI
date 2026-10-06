@@ -3,9 +3,25 @@ import { App } from './app';
 
 describe('App', () => {
   beforeEach(async () => {
+    // jsdom has no IntersectionObserver; the showcase's scroll-reveal/scroll-spy needs one.
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        observe(): void {}
+        unobserve(): void {}
+        disconnect(): void {}
+        takeRecords(): IntersectionObserverEntry[] {
+          return [];
+        }
+      },
+    );
     await TestBed.configureTestingModule({
       imports: [App],
     }).compileComponents();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('should create the app', () => {

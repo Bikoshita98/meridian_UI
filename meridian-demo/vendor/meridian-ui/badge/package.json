@@ -1,0 +1,4 @@
+{
+  "module": "../fesm2022/meridian-ui-badge.mjs",
+  "typings": "../types/meridian-ui-badge.d.ts"
+}
